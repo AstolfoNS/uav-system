@@ -1,0 +1,278 @@
+2026-03-27 22:04:15.657  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:04:15.658  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:05:21.955  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:05:21.955  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:05:31.038  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:05:31.038  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:05:54.711  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:05:54.712  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:05:54.712  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:05:54.713  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:05:54.713  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:05:54.714  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [28892]
+2026-03-27 22:05:54.714  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:06:13.815  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:06:13.816  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:06:13.817  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:06:13.927  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [28892]
+2026-03-27 22:06:13.928 ERROR --- [     MainThread] uvicorn.error             [               on.py:134 ] : Traceback (most recent call last):
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\_compat.py", line 60, in asyncio_run
+    return loop.run_until_complete(main)
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 636, in run_until_complete
+    self.run_forever()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 603, in run_forever
+    self._run_once()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 1909, in _run_once
+    handle._run()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\server.py", line 78, in serve
+    with self.capture_signals():
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\contextlib.py", line 142, in __exit__
+    next(self.gen)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\server.py", line 339, in capture_signals
+    signal.raise_signal(captured_signal)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\starlette\routing.py", line 645, in lifespan
+    await receive()
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\queues.py", line 159, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+2026-03-27 22:06:42.291  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:06:42.291  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:06:42.292  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:06:42.292  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:06:42.292  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:06:42.292  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [33024]
+2026-03-27 22:06:42.293  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:06:57.324  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:06:57.325  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:14:33.072  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:14:33.183  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [33024]
+2026-03-27 22:14:33.185 ERROR --- [     MainThread] uvicorn.error             [               on.py:134 ] : Traceback (most recent call last):
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\_compat.py", line 60, in asyncio_run
+    return loop.run_until_complete(main)
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 636, in run_until_complete
+    self.run_forever()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 603, in run_forever
+    self._run_once()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\base_events.py", line 1909, in _run_once
+    handle._run()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\server.py", line 78, in serve
+    with self.capture_signals():
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\contextlib.py", line 142, in __exit__
+    next(self.gen)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\server.py", line 339, in capture_signals
+    signal.raise_signal(captured_signal)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\starlette\routing.py", line 645, in lifespan
+    await receive()
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\asyncio\queues.py", line 159, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+2026-03-27 22:14:36.074  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:14:36.074  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:14:36.075  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:14:36.075  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:14:36.075  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:14:36.075  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [13752]
+2026-03-27 22:14:36.075  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:14:36.116  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:14:36.117  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:14:36.117  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:14:36.226  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:14:36.226  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:14:36.227  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:14:36.227  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [13752]
+2026-03-27 22:14:52.989  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:14:52.991  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:14:52.991  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:14:52.992  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:14:52.992  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:14:52.992  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [4068]
+2026-03-27 22:14:52.992  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:14:53.031  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:14:53.031  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:14:57.020  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59011 - "GET / HTTP/1.1" 200
+2026-03-27 22:14:57.097  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59011 - "GET /favicon.ico HTTP/1.1" 404
+2026-03-27 22:15:03.723  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59023 - "GET / HTTP/1.1" 200
+2026-03-27 22:15:15.643  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59091 - "GET / HTTP/1.1" 200
+2026-03-27 22:15:21.320  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50677 - "GET /docs HTTP/1.1" 200
+2026-03-27 22:15:22.916  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50677 - "GET /openapi.json HTTP/1.1" 200
+2026-03-27 22:16:55.955  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:16:56.065  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:16:56.065  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:16:56.066  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:16:56.066  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [4068]
+2026-03-27 22:16:59.106  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:16:59.106  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:16:59.106  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:16:59.107  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:16:59.107  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:16:59.108  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [31280]
+2026-03-27 22:16:59.108  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:16:59.146  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:16:59.147  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:16:59.147  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:16:59.260  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:16:59.261  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:16:59.261  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:16:59.261  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [31280]
+2026-03-27 22:17:05.291  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:17:05.291  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:17:05.291  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:17:05.292  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:17:05.292  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:17:05.292  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [29312]
+2026-03-27 22:17:05.292  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:17:05.329  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:17:05.329  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:17:10.338  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:52365 - "GET / HTTP/1.1" 500
+2026-03-27 22:17:36.216  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:17:36.327  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:17:36.327  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:17:36.328  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:17:36.328  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [29312]
+2026-03-27 22:17:39.324  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:17:39.324  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:17:39.325  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:17:39.325  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:17:39.326  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:17:39.326  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [27436]
+2026-03-27 22:17:39.326  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:17:39.366  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:17:39.366  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:17:39.367  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:17:39.475  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:17:39.476  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:17:39.476  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:17:39.476  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [27436]
+2026-03-27 22:17:46.171  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:17:46.171  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:17:46.173  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:17:46.174  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:17:46.174  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:17:46.174  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [11512]
+2026-03-27 22:17:46.174  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:17:46.214  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:17:46.214  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:17:50.811  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:51205 - "GET / HTTP/1.1" 200
+2026-03-27 22:17:55.027  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:51205 - "GET / HTTP/1.1" 200
+2026-03-27 22:34:15.886  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 22:34:15.987  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 22:34:15.987  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 22:34:15.987  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 22:34:15.987  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [11512]
+2026-03-27 22:34:22.054  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:34:22.055  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:34:22.055  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:34:22.056  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:34:22.056  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:34:22.057  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [7052]
+2026-03-27 22:34:22.057  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:34:26.182 ERROR --- [     MainThread] uvicorn.error             [               on.py:121 ] : Traceback (most recent call last):
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\starlette\routing.py", line 638, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\contextlib.py", line 199, in __aenter__
+    return await anext(self.gen)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\fastapi\routing.py", line 216, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+  File "C:\Users\TimeLeafing\AppData\Roaming\uv\python\cpython-3.10-windows-x86_64-none\lib\contextlib.py", line 199, in __aenter__
+    return await anext(self.gen)
+  File "C:\Project\uav-system\yolo-service\src\yoloservice\app\component\lifespan.py", line 16, in lifespan
+    yolo_manager.load_model(settings.absolute_weights_path)
+  File "C:\Project\uav-system\yolo-service\src\yoloservice\core\detector.py", line 14, in load_model
+    self.model = YOLO(model_path)
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\models\yolo\model.py", line 76, in __init__
+    super().__init__(model=model, task=task, verbose=verbose)
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\engine\model.py", line 144, in __init__
+    self._load(model, task=task)
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\engine\model.py", line 283, in _load
+    self.model, self.ckpt = load_checkpoint(weights)
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\nn\tasks.py", line 1515, in load_checkpoint
+    ckpt, weight = torch_safe_load(weight)  # load ckpt
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\nn\tasks.py", line 1463, in torch_safe_load
+    ckpt = torch_load(file, map_location="cpu")
+  File "C:\Project\uav-system\yolo-service\libs\ultralytics\ultralytics\utils\patches.py", line 178, in torch_load
+    return torch.load(*args, **kwargs)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\torch\serialization.py", line 1530, in load
+    with _open_file_like(f, "rb") as opened_file:
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\torch\serialization.py", line 795, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "C:\Project\uav-system\yolo-service\.venv\lib\site-packages\torch\serialization.py", line 776, in __init__
+    super().__init__(open(name, mode))  # noqa: SIM115
+FileNotFoundError: [Errno 2] No such file or directory: 'weights\\best.pt'
+
+2026-03-27 22:34:26.182 ERROR --- [     MainThread] uvicorn.error             [               on.py:59  ] : Application startup failed. Exiting.
+2026-03-27 22:34:59.069  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 22:34:59.071  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 22:34:59.071  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 22:34:59.072  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 22:34:59.072  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 22:34:59.072  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [19920]
+2026-03-27 22:34:59.072  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 22:35:16.354  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 22:35:16.355  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 22:52:38.527  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50067 - "GET / HTTP/1.1" 200
+2026-03-27 22:52:41.818  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50067 - "GET / HTTP/1.1" 200
+2026-03-27 23:26:50.640  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 23:26:50.755  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 23:26:50.755  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 23:26:50.756  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 23:26:50.757  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [19920]
+2026-03-27 23:26:54.392  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:26:54.394  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:26:54.394  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 23:26:54.395  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 23:26:54.395  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 23:26:54.395  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [25768]
+2026-03-27 23:26:54.396  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 23:26:54.446  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 23:26:54.446  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 23:28:12.166  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 23:28:12.273  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 23:28:12.273  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 23:28:12.273  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 23:28:12.274  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [25768]
+2026-03-27 23:28:15.589  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:28:15.589  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:28:15.590  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 23:28:15.591  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-27 23:28:15.591  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-27 23:28:15.591  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [33360]
+2026-03-27 23:28:15.591  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-27 23:28:15.633  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: {model_path}
+2026-03-27 23:28:15.633  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-27 23:29:38.256  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-03-27 23:29:38.370  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-03-27 23:29:38.370  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-03-27 23:29:38.371  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-03-27 23:29:38.371  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [33360]
+2026-03-27 23:29:41.433  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:29:41.433  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:29:41.434  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 23:33:32.044  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:33:32.045  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:33:32.045  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 23:37:29.266  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:37:29.267  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:37:29.267  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-27 23:49:33.645  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-27 23:49:33.645  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-27 23:49:33.646  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
