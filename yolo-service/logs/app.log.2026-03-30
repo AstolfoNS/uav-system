@@ -1,0 +1,13 @@
+2026-03-30 18:41:39.489  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-03-30 18:41:39.491  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-03-30 18:41:39.491  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-03-30 18:41:39.547  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-03-30 18:41:39.547  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-03-30 18:41:39.547  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [26460]
+2026-03-30 18:41:39.548  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-03-30 18:41:39.636  INFO --- [     MainThread] yolo-service              [         detector.py:15  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-03-30 18:41:39.637  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-03-30 18:41:49.970  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58823 - "POST /api/v1/image/predict HTTP/1.1" 200
+2026-03-30 18:41:56.593  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58849 - "GET /static/images/image_aca8de9b2c6a48a6b81ff935bdbb7be8.jpg HTTP/1.1" 200
+2026-03-30 18:42:44.259  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:55537 - "POST /api/v1/video/predict HTTP/1.1" 200
+2026-03-30 18:42:54.404  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61478 - "GET /static/videos/video_82ffe2d7bb1744a08c717825711e1e92.mp4 HTTP/1.1" 200
