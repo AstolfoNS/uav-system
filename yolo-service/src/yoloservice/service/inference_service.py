@@ -126,6 +126,28 @@ class InferenceService:
             # 删除临时目录
             shutil.rmtree(save_dir, ignore_errors=True)
             
+            # 使用 moviepy 转换为 Web 支持的 H.264 格式
+            mp4_video_name = f"video_{uuid_str}_h264.mp4"
+            mp4_final_path = os.path.join(project_abs_dir, mp4_video_name)
+            try:
+                from moviepy import VideoFileClip
+                clip = VideoFileClip(final_path)
+                clip.write_videofile(
+                    mp4_final_path, 
+                    codec='libx264', 
+                    audio_codec='aac',
+                    logger=None
+                )
+                clip.close()
+                # 转换成功，删除原文件并更新路径
+                os.remove(final_path)
+                final_path = mp4_final_path
+                final_video_name = mp4_video_name
+            except Exception as e:
+                import logging
+                logging.getLogger("yolo-service").error(f"转码 H.264 视频失败: {e}")
+                # 若失败，继续使用原视频上传作为 fallback 方案
+
             # 上传到 MinIO
             object_name = f"videos/{final_video_name}"
             from yoloservice.common.minio_client import minio_client

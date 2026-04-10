@@ -17,6 +17,7 @@ src/yoloservice/app/component/logging.py
 src/yoloservice/app/component/middleware.py
 src/yoloservice/app/component/route.py
 src/yoloservice/common/__init__.py
+src/yoloservice/common/minio_client.py
 src/yoloservice/common/schema/__init__.py
 src/yoloservice/common/schema/response.py
 src/yoloservice/common/utils/file_utils.py

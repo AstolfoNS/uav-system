@@ -19,6 +19,7 @@ dependencies = [
     "setuptools>=81.0.0",
     "python-multipart>=0.0.22",
     "minio>=7.2.20",
+    "moviepy>=2.2.1",
 ]
 
 [project.scripts]
