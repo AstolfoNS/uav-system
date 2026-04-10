@@ -1,5 +1,4 @@
 import os
-import time
 import shutil
 from fastapi import APIRouter, UploadFile, File, Request
 from starlette.concurrency import run_in_threadpool

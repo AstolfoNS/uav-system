@@ -1,10 +1,5 @@
 import os
-import time
-import cv2
-import numpy as np
 
-from yoloservice.core.detector import yolo_manager
-from yoloservice.config.settings import settings
 from yoloservice.common.utils.file_utils import generate_uuid_name
 import cv2
 import numpy as np
@@ -61,7 +56,7 @@ class InferenceService:
             success, buffer = cv2.imencode(".jpg", annotated_img)
             if success:
                 object_name = f"images/{filename}"
-                from yoloservice.common.minio_client import minio_client
+                from yoloservice.common.connect.minio_client import minio_client
                 image_url = minio_client.upload_bytes(object_name, buffer.tobytes(), content_type="image/jpeg")
             else:
                 raise ValueError("图像处理结果编码失败")
@@ -150,7 +145,7 @@ class InferenceService:
 
             # 上传到 MinIO
             object_name = f"videos/{final_video_name}"
-            from yoloservice.common.minio_client import minio_client
+            from yoloservice.common.connect.minio_client import minio_client
             video_url = minio_client.upload_file(object_name, final_path)
             
             # 删除本地视频文件

@@ -251,3 +251,25 @@
 2026-04-10 20:42:57.529  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
 2026-04-10 20:42:57.569  INFO --- [     MainThread] yolo-service              [         detector.py:22  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
 2026-04-10 20:42:57.569  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-04-10 20:51:51.525  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-04-10 20:51:51.525  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-04-10 20:51:51.527  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-04-10 20:51:51.562  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-04-10 20:51:51.563  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-04-10 20:51:51.563  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [20236]
+2026-04-10 20:51:51.563  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-04-10 20:51:51.608  INFO --- [     MainThread] yolo-service              [         detector.py:22  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-10 20:51:51.609  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-04-10 20:51:55.934  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:54966 - "GET / HTTP/1.1" 200
+2026-04-10 20:52:46.882  INFO --- [     MainThread] yolo-service              [         detector.py:25  ] : 即将切换 YOLO 模型: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-10 20:52:47.056  INFO --- [     MainThread] yolo-service              [         detector.py:28  ] : YOLO 模型已成功切换至: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-10 20:52:47.057  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58894 - "PUT /api/v1/weights/yolo26n.pt/active HTTP/1.1" 200
+2026-04-10 20:52:51.268  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58894 - "GET /api/v1/params HTTP/1.1" 307
+2026-04-10 20:52:51.272  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58894 - "GET /api/v1/params/ HTTP/1.1" 200
+2026-04-10 20:52:56.889  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58901 - "GET /api/v1/weights HTTP/1.1" 307
+2026-04-10 20:52:56.892  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:58901 - "GET /api/v1/weights/ HTTP/1.1" 200
+2026-04-10 20:56:47.149  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-04-10 20:56:47.257  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-04-10 20:56:47.258  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-04-10 20:56:47.258  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-04-10 20:56:47.258  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [20236]
