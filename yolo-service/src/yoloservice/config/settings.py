@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     OUTPUT_DIR: str = "runs/detect"
     STATIC_URL: str = "/static"
 
+    # MinIO 配置
+    MINIO_ENDPOINT: str = "192.168.14.129:9000"
+    MINIO_ACCESS_KEY: str = "admin"
+    MINIO_SECRET_KEY: str = "1234567890"
+    MINIO_SECURE: bool = False
+    MINIO_BUCKET_NAME: str = "uav-system"
+
     LOG: LoggingSettings = Field(default_factory=LoggingSettings)
 
     # 读取 .env 文件

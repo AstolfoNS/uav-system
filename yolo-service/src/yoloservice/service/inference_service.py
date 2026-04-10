@@ -56,12 +56,15 @@ class InferenceService:
 
             # 用 plot() 函数在图片上画框
             annotated_img = result.plot()
-            cv2.imwrite(save_path, annotated_img)
             
-            # 构建可访问的 URL: host/static/images/xxx.jpg
-            # request_host_url e.g. "http://127.0.0.1:8000"
-            base_static_url = str(request_host_url).rstrip("/") + settings.STATIC_URL
-            image_url = f"{base_static_url}/images/{filename}"
+            # 使用 cv2 编码图片并上传到 MinIO
+            success, buffer = cv2.imencode(".jpg", annotated_img)
+            if success:
+                object_name = f"images/{filename}"
+                from yoloservice.common.minio_client import minio_client
+                image_url = minio_client.upload_bytes(object_name, buffer.tobytes(), content_type="image/jpeg")
+            else:
+                raise ValueError("图像处理结果编码失败")
 
         return {
             "count": len(detections),
@@ -114,6 +117,7 @@ class InferenceService:
         from yoloservice.common.utils.file_utils import get_ext
         ext = get_ext(original_filename)
         
+        video_url = ""
         if os.path.exists(os.path.join(save_dir, video_filename)):
             final_video_name = f"video_{uuid_str}{ext}"
             final_path = os.path.join(project_abs_dir, final_video_name)
@@ -121,12 +125,20 @@ class InferenceService:
             shutil.move(os.path.join(save_dir, video_filename), final_path)
             # 删除临时目录
             shutil.rmtree(save_dir, ignore_errors=True)
+            
+            # 上传到 MinIO
+            object_name = f"videos/{final_video_name}"
+            from yoloservice.common.minio_client import minio_client
+            video_url = minio_client.upload_file(object_name, final_path)
+            
+            # 删除本地视频文件
+            try:
+                os.remove(final_path)
+            except Exception as e:
+                import logging
+                logging.getLogger("yolo-service").error(f"无法删除本地视频文件 {final_path}: {e}")
         else:
             final_video_name = original_filename
-
-        # 构建可访问的 URL: host/static/videos/video_xxx.mp4
-        base_static_url = str(request_host_url).rstrip("/") + settings.STATIC_URL
-        video_url = f"{base_static_url}/videos/{final_video_name}"
 
         return {
             "video_url": video_url,

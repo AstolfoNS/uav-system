@@ -19,6 +19,7 @@ src/yoloservice/app/component/route.py
 src/yoloservice/common/__init__.py
 src/yoloservice/common/schema/__init__.py
 src/yoloservice/common/schema/response.py
+src/yoloservice/common/utils/file_utils.py
 src/yoloservice/config/__init__.py
 src/yoloservice/config/settings.py
 src/yoloservice/config/log/__init__.py
