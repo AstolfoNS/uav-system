@@ -33,7 +33,10 @@ class RouteVisualizer:
 
             # 写入方法和模块信息
             methods = getattr(route, "methods", ["GET"])
-            current["_methods"] = [m for m in methods if m not in ("HEAD", "OPTIONS")]
+            existing_methods = current.setdefault("_methods", [])
+            for m in methods:
+                if m not in ("HEAD", "OPTIONS") and m not in existing_methods:
+                    existing_methods.append(m)
             
             endpoint = getattr(route, "endpoint", None)
             module = getattr(endpoint, "__module__", "static") if endpoint else "static"
