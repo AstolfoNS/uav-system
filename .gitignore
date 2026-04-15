@@ -8,9 +8,14 @@ target/
 *.class
 
 # IDE
-.idea/
-.vscode/
+**/.idea/
+**/.vscode/
 
 # logs
 backend-core/logs/**/*.log
 yolo-service/logs/**/*.log
+backend-core/logs/**/*.log.*
+yolo-service/logs/**/*.log.*
+
+# yolo weights
+yolo-service/weights/**/*.pt
