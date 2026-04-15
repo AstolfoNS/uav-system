@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS users
     -- 唯一性保证
     unique_if_active            TINYINT         GENERATED   ALWAYS AS (IF(is_deleted = 0, 1, NULL)) STORED              COMMENT '唯一性标记',
 
-    UNIQUE KEY uk_username(username),
-    UNIQUE KEY uk_email(email),
-    UNIQUE KEY uk_phone_number(phone_number)
+    UNIQUE KEY uk_username(username, unique_if_active),
+    UNIQUE KEY uk_email(email, unique_if_active),
+    UNIQUE KEY uk_phone_number(phone_number, unique_if_active)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT '用户表';
 
@@ -144,3 +144,91 @@ CREATE TABLE IF NOT EXISTS role_permissions
     UNIQUE KEY uk_role_id_permission_id(role_id, permission_id, unique_if_active)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT '角色权限关系表';
+
+
+
+CREATE TABLE IF NOT EXISTS yolo_nodes
+(
+    id                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY                                     COMMENT '主键ID',
+
+    node_name                   VARCHAR(64)     NOT NULL                                                                COMMENT '节点名称',
+    host                        VARCHAR(32)     NOT NULL                                                                COMMENT '节点HOST (IP或域名)',
+    port                        VARCHAR(8)      NOT NULL                                                                COMMENT '节点PORT',
+    active_weight_name          VARCHAR(64)         NULL                                                                COMMENT '当前正在使用的活跃模型名称 (冗余字段，方便查询)',
+
+    -- 审计与控制字段
+    created_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP                                   COMMENT '创建时间',
+    updated_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP       COMMENT '更新时间',
+    created_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '创建者ID（0表示系统）',
+    updated_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '修改者ID（0表示系统）',
+    remark                      TEXT                NULL                                                                COMMENT '备注',
+
+    -- 状态字段
+    status                      TINYINT         NOT NULL    DEFAULT 1                                                   COMMENT '节点状态：0=离线，1=在线，2=异常',
+    is_deleted                  TINYINT         NOT NULL    DEFAULT 0                                                   COMMENT '逻辑删除：0=未删除，1=已删除',
+    opt_lock_version            INT             NOT NULL    DEFAULT 0                                                   COMMENT '乐观锁版本号',
+    -- 唯一性保证
+    unique_if_active            TINYINT GENERATED ALWAYS AS (IF(is_deleted = 0, 1, NULL)) STORED                        COMMENT '唯一性标记',
+
+    UNIQUE KEY uk_host_port(host, port, unique_if_active),
+    UNIQUE KEY uk_node_name(node_name, unique_if_active)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'YOLO服务节点表';
+
+
+
+CREATE TABLE IF NOT EXISTS yolo_weights
+(
+    id                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY                                     COMMENT '主键ID',
+
+    node_id                     BIGINT UNSIGNED NOT NULL                                                                COMMENT '所属节点ID (关联 yolo_nodes.id)',
+    filename                    VARCHAR(64)     NOT NULL                                                                COMMENT '模型文件名 (如: yolo26n.pt)',
+    description                 VARCHAR(512)        NULL                                                                COMMENT '模型用途描述',
+    is_active                   TINYINT         NOT NULL    DEFAULT 0                                                   COMMENT '是否为节点当前活跃模型：0=否，1=是',
+
+    -- 审计字段
+    created_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP                                   COMMENT '创建时间',
+    updated_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP       COMMENT '更新时间',
+    created_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '创建者ID（0表示系统）',
+    updated_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '修改者ID（0表示系统）',
+    remark                      TEXT                NULL                                                                COMMENT '备注',
+
+    -- 状态字段
+    status                      TINYINT         NOT NULL    DEFAULT 1                                                   COMMENT '数据状态：0=禁用，1=正常',
+    is_deleted                  TINYINT         NOT NULL    DEFAULT 0                                                   COMMENT '逻辑删除：0=未删除，1=已删除',
+    opt_lock_version            INT             NOT NULL    DEFAULT 0                                                   COMMENT '乐观锁版本号',
+    -- 唯一性保证
+    unique_if_active            TINYINT GENERATED ALWAYS AS (IF(is_deleted = 0, 1, NULL)) STORED                        COMMENT '唯一性标记',
+
+    -- 保证同一个节点下的文件名不能重复
+    UNIQUE KEY uk_node_filename(node_id, filename, unique_if_active)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'YOLO节点模型权重记录表';
+
+
+
+CREATE TABLE IF NOT EXISTS yolo_node_params
+(
+    id                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY                                     COMMENT '主键ID',
+
+    node_id                     BIGINT UNSIGNED NOT NULL                                                                COMMENT '关联的节点ID',
+    params                      JSON                NULL                                                                COMMENT '当前生效的推理参数 (如: {"conf": 0.5, "iou": 0.65})',
+
+    -- 审计字段
+    created_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP                                   COMMENT '创建时间',
+    updated_at                  DATETIME        NOT NULL    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP       COMMENT '更新时间',
+    created_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '创建者ID（0表示系统）',
+    updated_by                  BIGINT UNSIGNED NOT NULL    DEFAULT 0                                                   COMMENT '修改者ID（0表示系统）',
+    remark                      TEXT                NULL                                                                COMMENT '备注',
+
+    -- 状态字段
+    status                      TINYINT         NOT NULL    DEFAULT 1                                                   COMMENT '数据状态：0=禁用，1=正常',
+    is_deleted                  TINYINT         NOT NULL    DEFAULT 0                                                   COMMENT '逻辑删除：0=未删除，1=已删除',
+    opt_lock_version            INT             NOT NULL    DEFAULT 0                                                   COMMENT '乐观锁版本号',
+    -- 唯一性保证
+    unique_if_active            TINYINT GENERATED ALWAYS AS (IF(is_deleted = 0, 1, NULL)) STORED                        COMMENT '唯一性标记',
+
+    UNIQUE KEY uk_node(node_id, unique_if_active)
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'YOLO节点推理参数表';
+
