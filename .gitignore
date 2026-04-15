@@ -11,11 +11,11 @@ target/
 **/.idea/
 **/.vscode/
 
-# logs
+# Logs
 backend-core/logs/**/*.log
 yolo-service/logs/**/*.log
 backend-core/logs/**/*.log.*
 yolo-service/logs/**/*.log.*
 
-# yolo weights
+# YOLO weights
 yolo-service/weights/**/*.pt
