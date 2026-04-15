@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tf.backend.core.mapper.RoleMapper">
+
+    <sql id="Base_Column_List">
+        r.id,
+        r.code, r.name, r.description, r.level, r.sort_order,
+        r.created_at, r.updated_at, r.created_by, r.updated_by, r.remark,
+        r.status, r.is_deleted, r.opt_lock_version
+    </sql>
+
+    <select id="getByUserId" resultType="com.tf.backend.core.model.entity.RoleEntity">
+        SELECT DISTINCT
+        <include refid="Base_Column_List"/>
+        FROM roles r
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+        AND r.status = 1
+        AND r.is_deleted = 0
+        AND ur.is_deleted = 0
+
+        ORDER BY r.sort_order ASC, r.id ASC
+    </select>
+
+</mapper>

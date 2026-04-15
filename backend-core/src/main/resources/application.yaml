@@ -1,3 +1,67 @@
+server:
+  port: 8111
+  address: 0.0.0.0
+  servlet:
+    context-path: /api/v1
 spring:
   application:
     name: backend-core
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.14.129:3306/uav_system?characterEncoding=utf-8&serverTimeZone=Asia/Shanghai
+    username: root
+    password: 1234567890
+  data:
+    redis:
+      host: 192.168.14.129
+      port: 6379
+      password: 1234567890
+      database: 0
+      username: default
+  jackson:
+    time-zone: Asia/Shanghai
+    serialization:
+      fail-on-empty-beans: false
+      indent-output: true
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+  security:
+    jwt:
+      issuer: admin
+      key: ...-..---...-.-.-----..-
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+      id-type: auto
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.tf.backend.core.domain.entity
+  db-type: mysql
+minio:
+  public-base-url: http://192.168.14.129:9000
+  endpoint: http://192.168.14.129:9000
+  access-key: admin
+  secret-key: 1234567890
+  default-bucket: default-bucket
+okhttp:
+  connect-timeout: 10
+  read-timeout: 30
+  write-timeout: 30
