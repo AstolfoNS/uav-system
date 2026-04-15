@@ -10,3 +10,7 @@ target/
 # IDE
 .idea/
 .vscode/
+
+# logs
+backend-core/logs/
+yolo-server/logs/
