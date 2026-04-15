@@ -12,5 +12,5 @@ target/
 .vscode/
 
 # logs
-backend-core/logs/
-yolo-server/logs/
+backend-core/logs/**/*.log
+yolo-service/logs/**/*.log
