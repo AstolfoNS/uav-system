@@ -1,7 +1,7 @@
 package com.tf.backend.core.common.util;
 
-import com.tf.backend.core.security.AuthenticationToken;
-import com.tf.backend.core.security.LoginUser;
+import com.tf.backend.core.application.security.AuthenticationToken;
+import com.tf.backend.core.application.security.LoginUser;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;

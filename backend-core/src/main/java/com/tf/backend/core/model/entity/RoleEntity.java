@@ -3,12 +3,13 @@ package com.tf.backend.core.model.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.tf.backend.core.model.entity.base.BaseEntity;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@AllArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
 @TableName("roles")
 public class RoleEntity extends BaseEntity {
 

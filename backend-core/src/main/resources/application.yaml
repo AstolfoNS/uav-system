@@ -10,8 +10,8 @@ spring:
     active: dev
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 10MB
+      max-file-size: 2048MB
+      max-request-size: 2050MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://192.168.14.129:3306/uav_system?characterEncoding=utf-8&serverTimeZone=Asia/Shanghai
@@ -35,7 +35,7 @@ spring:
   security:
     jwt:
       issuer: admin
-      key: ...-..---...-.-.-----..-
+      key: 326b735a00b35ebbaa5c72b5b10084d1
 springdoc:
   api-docs:
     enabled: true
@@ -62,6 +62,6 @@ minio:
   secret-key: 1234567890
   default-bucket: default-bucket
 okhttp:
-  connect-timeout: 10
-  read-timeout: 30
-  write-timeout: 30
+  connect-timeout: 3
+  read-timeout: 5
+  write-timeout: 5

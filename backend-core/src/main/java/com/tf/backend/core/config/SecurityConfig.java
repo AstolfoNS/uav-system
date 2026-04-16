@@ -53,7 +53,7 @@ public class SecurityConfig {
                 // 配置请求权限规则
                 .authorizeHttpRequests(auth -> auth
                         // 公共开放的接口：/actuator/**，/public/**
-                        .requestMatchers("/actuator/**", "/public/**", "/swagger-ui/**", "/auth/refresh")
+                        .requestMatchers("/actuator/**", "/public/**", "/swagger-ui/**", "/auth/**")
                         .permitAll()
                         // 其他所有请求通通走认证
                         .anyRequest()

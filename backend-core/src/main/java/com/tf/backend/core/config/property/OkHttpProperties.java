@@ -13,4 +13,8 @@ public class OkHttpProperties {
 
     private int writeTimeout = 30;
 
+    private int connectPoolMaxIdleConnections = 50;
+
+    private long connectPollKeepAliveDuration = 5;
+
 }

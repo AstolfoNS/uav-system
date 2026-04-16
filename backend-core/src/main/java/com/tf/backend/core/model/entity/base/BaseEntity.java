@@ -2,9 +2,15 @@ package com.tf.backend.core.model.entity.base;
 
 import com.baomidou.mybatisplus.annotation.Version;
 import com.tf.backend.core.common.enumeration.Status;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @Data
 public abstract class BaseEntity extends BaseFields {
@@ -25,5 +31,4 @@ public abstract class BaseEntity extends BaseFields {
     private Status status;
 
     private String remark;
-
 }

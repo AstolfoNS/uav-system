@@ -37,16 +37,16 @@ public class R<T> implements Serializable {
         return new R<>(HttpCode.OK.getCode(), HttpCode.OK.getMessage(), data, null);
     }
 
-    public static <T> R<T> ok(String msg, T data) {
+    public static <T> R<T> ok(T data, String msg) {
         return new R<>(HttpCode.OK.getCode(), msg, data, null);
     }
 
-    public static <T> R<T> ok(HttpCode httpCode, T data) {
+    public static <T> R<T> ok(T data, HttpCode httpCode) {
         return new R<>(httpCode.getCode(), httpCode.getMessage(), data, null);
     }
 
     public static <T> R<T> okWithMsg(String msg) {
-        return ok(msg, null);
+        return ok(null, msg);
     }
 
     // ==========================

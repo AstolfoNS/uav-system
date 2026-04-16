@@ -1,12 +1,18 @@
 package com.tf.backend.core.model.entity.base;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
 @Data
 public abstract class BaseFields implements Serializable {
 
@@ -52,6 +58,4 @@ public abstract class BaseFields implements Serializable {
      */
     @TableLogic(value = "0", delval = "1")
     private Boolean isDeleted;
-
-
 }
