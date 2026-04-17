@@ -11,9 +11,10 @@ const app = {
   menu: {
     dashboard: "总览",
     profile: "个人资料",
-    nodes: "YOLO 节点",
+    nodes: "模型节点",
     inference: "推理任务",
     records: "推理记录",
+    rbac: "权限管理",
   },
 };
 

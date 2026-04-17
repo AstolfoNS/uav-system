@@ -2,7 +2,11 @@ import { request } from "@/shared/http/request";
 import type {
   PagedResponse,
   YoloNode,
+  YoloNodeParamCreateRequest,
+  YoloNodeParamTemplate,
+  YoloNodeParamUpdateRequest,
   YoloNodePageRequest,
+  YoloNodeWeightsSummary,
   YoloNodeUpsertRequest,
 } from "@/types";
 
@@ -48,6 +52,56 @@ export async function applyTemplate(
   await request.put<void>(
     `/yolo-nodes/${nodeId}/params/template/${templateName}/apply`,
   );
+}
+
+export async function fetchNodeParamTemplates(
+  nodeId: number,
+): Promise<YoloNodeParamTemplate[]> {
+  return request.get<YoloNodeParamTemplate[]>(
+    `/yolo-nodes/${nodeId}/params/templates`,
+  );
+}
+
+export async function fetchNodeParamTemplate(
+  nodeId: number,
+  templateName: string,
+): Promise<YoloNodeParamTemplate> {
+  return request.get<YoloNodeParamTemplate>(
+    `/yolo-nodes/${nodeId}/params/templates/${templateName}`,
+  );
+}
+
+export async function createNodeParamTemplate(
+  nodeId: number,
+  payload: YoloNodeParamCreateRequest,
+): Promise<void> {
+  await request.post<void>(`/yolo-nodes/${nodeId}/params/templates`, payload);
+}
+
+export async function updateNodeParamTemplate(
+  nodeId: number,
+  templateName: string,
+  payload: YoloNodeParamUpdateRequest,
+): Promise<void> {
+  await request.put<void>(
+    `/yolo-nodes/${nodeId}/params/templates/${templateName}`,
+    payload,
+  );
+}
+
+export async function deleteNodeParamTemplate(
+  nodeId: number,
+  templateName: string,
+): Promise<void> {
+  await request.delete<void>(
+    `/yolo-nodes/${nodeId}/params/templates/${templateName}`,
+  );
+}
+
+export async function fetchNodeWeightSummary(
+  nodeId: number,
+): Promise<YoloNodeWeightsSummary> {
+  return request.get<YoloNodeWeightsSummary>(`/yolo-nodes/${nodeId}/weights`);
 }
 
 export async function uploadWeight(nodeId: number, file: File): Promise<void> {

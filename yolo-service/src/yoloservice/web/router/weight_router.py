@@ -19,7 +19,7 @@ def build_weight_router() -> APIRouter:
     @router.post("/")
     async def upload_weight(file: UploadFile = File(...)):
         """
-        上传并保存一个新的 .pt 格式的权重模型文件。
+        上传并保存一个新的权重模型文件，支持 .pt/.onnx。
         """
         try:
             result = weight_service.upload_weight(file)
@@ -33,12 +33,15 @@ def build_weight_router() -> APIRouter:
     async def set_active_weight(filename: str):
         """
         将系统当前使用的模型动态切换为指定的权重文件。
+        推荐传入包含后缀的完整文件名（如 xxx.onnx）。
         """
         try:
             result = weight_service.switch_active_weight(filename)
             return {"code": 200, "message": result["message"]}
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
+        except RuntimeError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

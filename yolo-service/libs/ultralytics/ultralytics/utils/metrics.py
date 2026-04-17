@@ -1060,7 +1060,7 @@ class DetMetrics(SimpleClass, DataExportMixin):
         for k in self.stats.keys():
             self.stats[k].append(stat[k])
 
-    def process(self, save_dir: Path = Path("."), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
+    def process(self, save_dir: Path = Path(""), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
         """Process predicted results for object detection and update metrics.
 
         Args:
@@ -1211,7 +1211,7 @@ class SegmentMetrics(DetMetrics):
         self.seg = Metric()
         self.stats["tp_m"] = []  # add additional stats for masks
 
-    def process(self, save_dir: Path = Path("."), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
+    def process(self, save_dir: Path = Path(""), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
         """Process the detection and segmentation metrics over the given set of predictions.
 
         Args:
@@ -1347,7 +1347,7 @@ class PoseMetrics(DetMetrics):
         self.pose = Metric()
         self.stats["tp_p"] = []  # add additional stats for pose
 
-    def process(self, save_dir: Path = Path("."), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
+    def process(self, save_dir: Path = Path(""), plot: bool = False, on_plot=None) -> dict[str, np.ndarray]:
         """Process the detection and pose metrics over the given set of predictions.
 
         Args:

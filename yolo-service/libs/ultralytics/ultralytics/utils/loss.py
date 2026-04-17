@@ -17,6 +17,39 @@ from ultralytics.utils.torch_utils import autocast
 from .metrics import bbox_iou, probiou
 from .tal import bbox2dist, rbox2dist
 
+#GCDLOSS
+def gcd_similarity(pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-9) -> torch.Tensor:
+
+    xp = (pred[:, 0] + pred[:, 2]) * 0.5
+    yp = (pred[:, 1] + pred[:, 3]) * 0.5
+    xt = (target[:, 0] + target[:, 2]) * 0.5
+    yt = (target[:, 1] + target[:, 3]) * 0.5
+
+    wp = (pred[:, 2] - pred[:, 0]).clamp(min=eps)
+    hp = (pred[:, 3] - pred[:, 1]).clamp(min=eps)
+    wt = (target[:, 2] - target[:, 0]).clamp(min=eps)
+    ht = (target[:, 3] - target[:, 1]).clamp(min=eps)
+
+    dgc2 = 0.5 * ((xp - xt) ** 2 / (wp ** 2) + (yp - yt) ** 2 / (hp ** 2))
+    dgc2 += 0.5 * (((wp - wt) ** 2) / (4 * wp ** 2) + ((hp - ht) ** 2) / (4 * hp ** 2))
+    dgc2 += 0.5 * ((xt - xp) ** 2 / (wt ** 2) + (yt - yp) ** 2 / (ht ** 2))
+    dgc2 += 0.5 * (((wt - wp) ** 2) / (4 * wt ** 2) + ((ht - hp) ** 2) / (4 * ht ** 2))
+
+    sim = torch.exp(-torch.sqrt(dgc2 + eps))  # paper Eq.9
+    return sim
+
+def gcd_loss(pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-9) -> torch.Tensor:
+    """
+    GCD loss = 1 - similarity
+
+    Args:
+        pred:   (N, 4), xyxy
+        target: (N, 4), xyxy
+
+    Returns:
+        loss: (N,), smaller is better
+    """
+    return 1.0 - gcd_similarity(pred, target, eps=eps)
 
 class VarifocalLoss(nn.Module):
     """Varifocal loss by Zhang et al.
@@ -109,10 +142,13 @@ class DFLoss(nn.Module):
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
-    def __init__(self, reg_max: int = 16):
+    def __init__(self, reg_max: int = 16,nwd_loss = False,gcd_loss = False, iou_ratio = 0.5):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+        self.gcd_loss = gcd_loss
+        self.nwd_loss = nwd_loss
+        self.iou_ratio = iou_ratio
 
     def forward(
         self,
@@ -130,6 +166,11 @@ class BboxLoss(nn.Module):
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
         iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
         loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        if self.gcd_loss:
+            loss_gcd = gcd_loss(pred_bboxes[fg_mask], target_bboxes[fg_mask]).unsqueeze(-1)
+            loss_gcd = (loss_gcd * weight).sum() / target_scores_sum
+            loss_iou = self.iou_ratio * loss_iou + (1.0 - self.iou_ratio) * loss_gcd
 
         # DFL loss
         if self.dfl_loss:
@@ -332,23 +373,29 @@ class KeypointLoss(nn.Module):
 
 class v8DetectionLoss:
     """Criterion class for computing training losses for YOLOv8 object detection."""
-
+ 
     def __init__(self, model, tal_topk: int = 10, tal_topk2: int | None = None):  # model must be de-paralleled
         """Initialize v8DetectionLoss with model parameters and task-aligned assignment settings."""
         device = next(model.parameters()).device  # get model device
         h = model.args  # hyperparameters
-
+ 
         m = model.model[-1]  # Detect() module
         self.bce = nn.BCEWithLogitsLoss(reduction="none")
+        # self.bce = AdaFocalLoss(nn.BCEWithLogitsLoss(reduction='none')) # 如果不注释使用的就是AdaFocalLoss损失失函数
+ 
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes
         self.no = m.nc + m.reg_max * 4
         self.reg_max = m.reg_max
         self.device = device
-
+ 
+        self.nwdloss = self.hyp.nwdloss
+        self.iou_ratio = self.hyp.iou_ratio
+        self.gcd_loss = self.hyp.gcdloss
+        
         self.use_dfl = m.reg_max > 1
-
+ 
         self.assigner = TaskAlignedAssigner(
             topk=tal_topk,
             num_classes=self.nc,
@@ -357,7 +404,7 @@ class v8DetectionLoss:
             stride=self.stride.tolist(),
             topk2=tal_topk2,
         )
-        self.bbox_loss = BboxLoss(m.reg_max).to(device)
+        self.bbox_loss = BboxLoss(m.reg_max,nwd_loss=self.nwdloss,gcd_loss=self.gcd_loss,iou_ratio=self.iou_ratio).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
     def preprocess(self, targets: torch.Tensor, batch_size: int, scale_tensor: torch.Tensor) -> torch.Tensor:

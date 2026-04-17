@@ -149,7 +149,7 @@
   "message": "获取成功",
   "data": {
     "active": "yolo26n.pt",
-    "available": ["yolo26n.pt", "yolotest.pt"]
+    "available": ["yolo26n.pt", "sky-scan-det_640_fp16.onnx"]
   }
 }
 ```
@@ -161,7 +161,7 @@
 - Auth: 否
 - Content-Type: `multipart/form-data`
 - Form:
-  - `file` `.pt` 文件
+  - `file` 权重文件（支持 `.pt/.onnx`）
 - 返回示例：
 
 ```json
@@ -180,7 +180,7 @@
 - URL: `/api/v1/weights/{filename}/active`
 - Auth: 否
 - Path:
-  - `filename` 文件名，可带或不带 `.pt`
+  - `filename` 文件名（建议传包含后缀的完整文件名）
 - 返回示例：
 
 ```json
@@ -196,7 +196,7 @@
 - URL: `/api/v1/weights/{filename}`
 - Auth: 否
 - Path:
-  - `filename` 文件名，可带或不带 `.pt`
+  - `filename` 文件名（建议传包含后缀的完整文件名）
 - 返回示例：
 
 ```json
@@ -205,6 +205,13 @@
   "message": "成功删除 yolov8x_best.pt"
 }
 ```
+
+### 5.5 权重运行依赖说明
+
+- `.pt`: 使用 PyTorch/Ultralytics，默认可用。
+- `.onnx`: 需要 `onnx` 与 `onnxruntime`。
+
+当依赖缺失时，接口会返回明确错误提示。
 
 ## 6. 推理参数管理（Params）
 

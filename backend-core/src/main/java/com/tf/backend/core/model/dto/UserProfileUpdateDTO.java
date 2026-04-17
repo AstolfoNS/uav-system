@@ -10,6 +10,12 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "用户个人资料修改请求对象")
 public record UserProfileUpdateDTO(
 
+        @Schema(description = "用户名", example = "uav_admin", minLength = 4, maxLength = 32)
+        @NotBlank(message = "用户名不能为空")
+        @Size(min = 4, max = 32, message = "用户名长度需在4到32个字符之间")
+        @Pattern(regexp = "^[A-Za-z0-9_]+$", message = "用户名仅支持字母、数字和下划线")
+        String username,
+
         @Schema(description = "用户昵称", example = "张三", maxLength = 64)
         @NotBlank(message = "昵称不能为空")
         @Size(max = 64, message = "昵称长度不能超过64个字符")

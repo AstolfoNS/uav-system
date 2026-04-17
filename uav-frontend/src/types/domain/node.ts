@@ -11,3 +11,19 @@ export interface YoloNode {
   updatedAt?: string;
   [key: string]: unknown;
 }
+
+export interface YoloNodeParamTemplate {
+  id: number;
+  nodeId: number;
+  templateName: string;
+  description?: string;
+  isActive?: boolean;
+  params: Record<string, unknown>;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface YoloNodeWeightsSummary {
+  activeWeight: string | null;
+  availableWeights: string[];
+}

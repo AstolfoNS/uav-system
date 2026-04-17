@@ -16,6 +16,7 @@ import PageHero from "@/components/PageHero.vue";
 const { t } = useI18n();
 
 const loading = ref(false);
+const isInitialLoadDone = ref(false);
 const records = ref<YoloDetectionRecord[]>([]);
 const total = ref(0);
 const current = ref(1);
@@ -32,6 +33,10 @@ const filters = reactive({
 const detailDialog = ref(false);
 const detailLoading = ref(false);
 const detail = ref<YoloDetectionRecord | null>(null);
+const previewDialog = ref(false);
+const previewKind = ref<"image" | "video">("image");
+const previewSrc = ref("");
+const previewTitle = ref("");
 const showAllRecordDetails = ref(false);
 const confirmDeleteDialog = ref(false);
 const deleting = ref(false);
@@ -49,28 +54,89 @@ const typeItems = computed(() => [
   { title: t("records.video"), value: 2 },
 ]);
 
+const tableLoading = computed(() => !isInitialLoadDone.value && loading.value);
+const tableRefreshing = computed(
+  () => isInitialLoadDone.value && loading.value,
+);
+const suppressTaskTypeAutoLoad = ref(false);
+
+function getPageScrollTop(): number {
+  return (
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    0
+  );
+}
+
+async function restorePageScrollTop(scrollTop: number): Promise<void> {
+  await nextTick();
+  window.scrollTo({ top: scrollTop, left: 0 });
+}
+
+function normalizeTaskType(taskType: unknown): number | null {
+  if (typeof taskType === "number") {
+    return taskType === 2 ? 2 : 1;
+  }
+
+  const normalized = String(taskType ?? "")
+    .trim()
+    .toUpperCase();
+
+  if (normalized === "2" || normalized === "VIDEO") {
+    return 2;
+  }
+
+  if (normalized === "1" || normalized === "IMAGE" || normalized === "IMG") {
+    return 1;
+  }
+
+  return null;
+}
+
+const selectedTaskType = computed(() => normalizeTaskType(filters.taskType));
+
+const filteredRecords = computed(() => {
+  const currentTaskType = selectedTaskType.value;
+  if (currentTaskType === null) {
+    return records.value;
+  }
+
+  return records.value.filter(
+    (item) => normalizeTaskType(item.taskType) === currentTaskType,
+  );
+});
+
 const pageCount = computed(() =>
   Math.max(1, Math.ceil(total.value / size.value)),
 );
 
 const successCountInPage = computed(
   () =>
-    records.value.filter((item) => normalizeRecordStatus(item.status) === 1)
-      .length,
+    filteredRecords.value.filter(
+      (item) => normalizeRecordStatus(item.status) === 1,
+    ).length,
 );
 
 const failedCountInPage = computed(
   () =>
-    records.value.filter((item) => normalizeRecordStatus(item.status) !== 1)
-      .length,
+    filteredRecords.value.filter(
+      (item) => normalizeRecordStatus(item.status) !== 1,
+    ).length,
 );
 
 const imageCountInPage = computed(
-  () => records.value.filter((item) => Number(item.taskType) !== 2).length,
+  () =>
+    filteredRecords.value.filter(
+      (item) => normalizeTaskType(item.taskType) !== 2,
+    ).length,
 );
 
 const videoCountInPage = computed(
-  () => records.value.filter((item) => Number(item.taskType) === 2).length,
+  () =>
+    filteredRecords.value.filter(
+      (item) => normalizeTaskType(item.taskType) === 2,
+    ).length,
 );
 
 const headers = computed(() => [
@@ -84,9 +150,124 @@ const headers = computed(() => [
     title: t("records.table.actions"),
     key: "actions",
     sortable: false,
-    width: 140,
+    width: 220,
   },
 ]);
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object") {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+function pickMediaUrl(
+  record: YoloDetectionRecord | null,
+  keys: string[],
+): string {
+  if (!record) {
+    return "";
+  }
+
+  const bag = asObject(record);
+  for (const key of keys) {
+    const raw = bag[key];
+    if (typeof raw === "string" && raw.trim().startsWith("http")) {
+      return raw.trim();
+    }
+  }
+
+  const detailBag = asObject(bag.detectionDetails);
+  for (const key of keys) {
+    const raw = detailBag[key];
+    if (typeof raw === "string" && raw.trim().startsWith("http")) {
+      return raw.trim();
+    }
+  }
+
+  return "";
+}
+
+function previewUrlFor(record: YoloDetectionRecord): string {
+  if (Number(record.taskType) === 2) {
+    return pickMediaUrl(record, [
+      "resultUrl",
+      "result_url",
+      "videoUrl",
+      "video_url",
+      "resultVideoUrl",
+      "renderedVideoUrl",
+      "sourceUrl",
+      "source_url",
+      "inputVideoUrl",
+      "originVideoUrl",
+    ]);
+  }
+
+  return pickMediaUrl(record, [
+    "resultUrl",
+    "result_url",
+    "imageUrl",
+    "image_url",
+    "resultImageUrl",
+    "renderedImageUrl",
+    "sourceUrl",
+    "source_url",
+    "inputImageUrl",
+    "originImageUrl",
+  ]);
+}
+
+function openPreview(record: YoloDetectionRecord): void {
+  const src = previewUrlFor(record);
+  if (!src) {
+    notify(t("records.previewUnavailable"), "warning");
+    return;
+  }
+
+  previewKind.value = Number(record.taskType) === 2 ? "video" : "image";
+  previewSrc.value = src;
+  previewTitle.value = String(record.originalFilename ?? t("records.detail"));
+  previewDialog.value = true;
+}
+
+function closePreview(): void {
+  previewDialog.value = false;
+}
+
+function fileNameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname.split("/").filter(Boolean);
+    const last = path[path.length - 1] ?? "";
+    return decodeURIComponent(last);
+  } catch {
+    return "";
+  }
+}
+
+function downloadRecordMedia(record: YoloDetectionRecord): void {
+  const src = previewUrlFor(record);
+  if (!src) {
+    notify(t("records.downloadUnavailable"), "warning");
+    return;
+  }
+
+  const fallback =
+    String(record.originalFilename ?? "").trim() ||
+    fileNameFromUrl(src) ||
+    "record-media";
+
+  const anchor = document.createElement("a");
+  anchor.href = src;
+  anchor.download = fallback;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+}
 
 async function loadNodes(): Promise<void> {
   try {
@@ -97,14 +278,20 @@ async function loadNodes(): Promise<void> {
   }
 }
 
-async function loadRecords(): Promise<void> {
+async function loadRecords(options?: {
+  preserveScrollPosition?: boolean;
+}): Promise<void> {
+  const preservedScrollTop = options?.preserveScrollPosition
+    ? getPageScrollTop()
+    : null;
+
   loading.value = true;
   try {
     const page = await fetchRecordPage({
       current: current.value,
       size: size.value,
       nodeId: filters.nodeId,
-      taskType: filters.taskType,
+      taskType: selectedTaskType.value ?? undefined,
       originalFilename: filters.originalFilename.trim() || undefined,
     });
 
@@ -117,15 +304,25 @@ async function loadRecords(): Promise<void> {
     );
   } finally {
     loading.value = false;
+    isInitialLoadDone.value = true;
+
+    if (preservedScrollTop !== null) {
+      await restorePageScrollTop(preservedScrollTop);
+    }
   }
 }
 
 async function resetFilters(): Promise<void> {
-  filters.nodeId = null;
-  filters.taskType = null;
-  filters.originalFilename = "";
-  current.value = 1;
-  await loadRecords();
+  suppressTaskTypeAutoLoad.value = true;
+  try {
+    filters.nodeId = null;
+    filters.taskType = null;
+    filters.originalFilename = "";
+    current.value = 1;
+    await loadRecords({ preserveScrollPosition: true });
+  } finally {
+    suppressTaskTypeAutoLoad.value = false;
+  }
 }
 
 async function openDetail(recordId: number): Promise<void> {
@@ -173,7 +370,7 @@ async function confirmDelete(): Promise<void> {
 }
 
 function typeLabel(taskType: number | undefined): string {
-  return Number(taskType) === 2
+  return normalizeTaskType(taskType) === 2
     ? t("records.typeVideo")
     : t("records.typeImage");
 }
@@ -216,9 +413,17 @@ function asText(value: unknown): string {
     return t("common.unavailable");
   }
   if (typeof value === "object") {
-    return JSON.stringify(value);
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
   }
   return String(value);
+}
+
+function isStructuredJsonValue(value: string): boolean {
+  return value.startsWith("{\n") || value.startsWith("[\n");
 }
 
 function detailRows(
@@ -293,6 +498,18 @@ onMounted(async () => {
 });
 
 watch(
+  () => filters.taskType,
+  async (newValue, oldValue) => {
+    if (suppressTaskTypeAutoLoad.value || newValue === oldValue) {
+      return;
+    }
+
+    current.value = 1;
+    await loadRecords({ preserveScrollPosition: true });
+  },
+);
+
+watch(
   () => [
     detailDialog.value,
     detailLoading.value,
@@ -337,7 +554,7 @@ watch(
               variant="outlined"
             />
           </v-col>
-          <v-col cols="12" md="4">
+          <v-col cols="12" md="6">
             <v-text-field
               v-model="filters.originalFilename"
               clearable
@@ -346,7 +563,9 @@ watch(
               variant="outlined"
             />
           </v-col>
-          <v-col cols="12" md="2" class="d-flex align-end ga-2 flex-wrap">
+        </v-row>
+        <v-row class="filter-actions-row">
+          <v-col cols="12" class="filter-actions-bar">
             <v-btn
               class="btn-primary-action"
               color="primary"
@@ -393,8 +612,8 @@ watch(
       <v-card-text class="table-shell">
         <v-data-table
           :headers="headers"
-          :items="records"
-          :loading="loading"
+          :items="filteredRecords"
+          :loading="tableLoading"
           :loading-text="t('common.loading')"
           :no-data-text="t('records.tableEmpty')"
           density="comfortable"
@@ -419,7 +638,22 @@ watch(
           <template #item.actions="{ item }">
             <div class="d-flex ga-1">
               <v-btn
-                icon="mdi-eye"
+                :title="t('records.actionPreview')"
+                icon="mdi-image-search-outline"
+                size="x-small"
+                variant="text"
+                @click="openPreview(item)"
+              />
+              <v-btn
+                :title="t('records.actionDownload')"
+                icon="mdi-download"
+                size="x-small"
+                variant="text"
+                @click="downloadRecordMedia(item)"
+              />
+              <v-btn
+                :title="t('records.detail')"
+                icon="mdi-text-box-search-outline"
                 size="x-small"
                 variant="text"
                 @click="openDetail(Number(item.id))"
@@ -434,6 +668,14 @@ watch(
           </template>
         </v-data-table>
 
+        <v-progress-linear
+          v-if="tableRefreshing"
+          class="mt-2"
+          color="primary"
+          indeterminate
+          rounded
+        />
+
         <div class="d-flex justify-end mt-4">
           <v-pagination
             v-model="current"
@@ -445,6 +687,28 @@ watch(
       </v-card-text>
     </v-card>
   </div>
+
+  <v-dialog v-model="previewDialog" max-width="1200">
+    <v-card class="preview-dialog-card" rounded="xl">
+      <v-card-title class="d-flex align-center ga-2">
+        <span class="text-subtitle-1">{{ previewTitle }}</span>
+        <v-spacer />
+        <v-btn icon="mdi-close" variant="text" @click="closePreview" />
+      </v-card-title>
+      <v-divider />
+      <v-card-text class="preview-dialog-body">
+        <v-img
+          v-if="previewKind === 'image'"
+          class="preview-dialog-image"
+          :src="previewSrc"
+          contain
+        />
+        <video v-else class="preview-dialog-video" controls autoplay>
+          <source :src="previewSrc" />
+        </video>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 
   <v-dialog v-model="detailDialog" max-width="860">
     <v-card rounded="xl">
@@ -482,7 +746,14 @@ watch(
                   <div class="text-caption text-medium-emphasis">
                     {{ row.label }}
                   </div>
-                  <div class="text-body-2">{{ row.value }}</div>
+                  <div
+                    class="text-body-2 detail-value"
+                    :class="{
+                      'detail-value--json': isStructuredJsonValue(row.value),
+                    }"
+                  >
+                    {{ row.value }}
+                  </div>
                 </v-col>
               </v-row>
             </v-card-text>
@@ -533,7 +804,14 @@ watch(
                     <div class="text-caption text-medium-emphasis mono">
                       {{ item.key }}
                     </div>
-                    <div class="text-body-2">{{ item.value }}</div>
+                    <div
+                      class="text-body-2 detail-value"
+                      :class="{
+                        'detail-value--json': isStructuredJsonValue(item.value),
+                      }"
+                    >
+                      {{ item.value }}
+                    </div>
                   </v-col>
                 </v-row>
                 <div v-else class="text-body-2 text-medium-emphasis">
@@ -572,6 +850,17 @@ watch(
   row-gap: 8px;
 }
 
+.filter-actions-row {
+  margin-top: -2px;
+}
+
+.filter-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .table-shell {
   padding-top: 16px;
 }
@@ -580,5 +869,50 @@ watch(
   max-height: 320px;
   overflow: auto;
   padding-right: 4px;
+}
+
+.detail-value {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.detail-value--json {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(21, 58, 73, 0.08);
+  border: 1px solid rgba(31, 122, 140, 0.2);
+}
+
+.preview-dialog-card {
+  background: linear-gradient(
+    145deg,
+    rgba(238, 247, 249, 0.98),
+    rgba(247, 251, 252, 0.98)
+  );
+}
+
+.preview-dialog-body {
+  padding: 20px;
+}
+
+.preview-dialog-image,
+.preview-dialog-video {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 14px;
+  background: rgba(8, 24, 33, 0.92);
+}
+
+@media (max-width: 960px) {
+  .filter-actions-bar {
+    justify-content: stretch;
+  }
+
+  .filter-actions-bar > .v-btn {
+    width: 100%;
+  }
 }
 </style>

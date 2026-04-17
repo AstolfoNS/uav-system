@@ -51,6 +51,9 @@ public class LoginServiceImpl implements LoginService {
         if (user.getStatus() != Status.ENABLED) {
             throw new BizException(910, "账号状态异常，请联系管理员");
         }
+        // 防止沿用旧缓存中的角色/权限快照：每次登录前强制清理登录用户缓存。
+        authenticationService.evictLoginUserCache(user.getId());
+
         // 生成双 Token (传入 rememberMe 状态以动态决定 RT 寿命)
         String newAT = jwtProvider.generateAccessToken(user.getId());
         String newRT = jwtProvider.generateRefreshToken(user.getId(), request.rememberMe());

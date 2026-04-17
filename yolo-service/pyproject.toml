@@ -20,6 +20,23 @@ dependencies = [
     "python-multipart>=0.0.22",
     "minio>=7.2.20",
     "moviepy>=2.2.1",
+
+    # ONNX 基础依赖
+    "onnx>=1.16.0",
+
+    # ONNX Runtime：按 Python 版本与常见平台自动分流，避免无轮子导致安装失败
+    "onnxruntime>=1.18.0,<1.24.0; python_version < '3.11' and platform_machine == 'AMD64' and sys_platform == 'win32'",
+    "onnxruntime>=1.18.0,<1.24.0; python_version < '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "onnxruntime>=1.24.0; python_version >= '3.11' and platform_machine == 'AMD64' and sys_platform == 'win32'",
+    "onnxruntime>=1.24.0; python_version >= '3.11' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
+
+[project.optional-dependencies]
+# 常见环境建议：`uv sync --extra local-gpu`
+local-gpu = [
+    # Windows/Linux 上可选 GPU ONNX Runtime
+    "onnxruntime-gpu>=1.18.0; platform_machine == 'AMD64' and sys_platform == 'win32'",
+    "onnxruntime-gpu>=1.18.0; platform_machine == 'x86_64' and sys_platform == 'linux'",
 ]
 
 [project.scripts]

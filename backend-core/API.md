@@ -137,7 +137,90 @@
   - `templateName` string
 - 返回: `R<Void>`
 
-### 5.7 手动同步节点状态
+### 5.7 查询参数模板列表
+
+- Method: `GET`
+- URL: `/api/v1/yolo-nodes/{id}/params/templates`
+- Auth: 是
+- Path:
+  - `id` long
+- 返回: `R<List<YoloNodeParamVO>>`
+
+`YoloNodeParamVO` 常用字段：
+
+- `id` long 模板记录ID
+- `nodeId` long 节点ID
+- `templateName` string 模板名称
+- `description` string 模板描述
+- `isActive` boolean 是否激活
+- `params` object 参数字典
+- `updatedAt` string 最后更新时间
+
+### 5.8 查询单个参数模板
+
+- Method: `GET`
+- URL: `/api/v1/yolo-nodes/{id}/params/templates/{templateName}`
+- Auth: 是
+- Path:
+  - `id` long
+  - `templateName` string
+- 返回: `R<YoloNodeParamVO>`
+
+### 5.9 创建参数模板
+
+- Method: `POST`
+- URL: `/api/v1/yolo-nodes/{id}/params/templates`
+- Auth: 是
+- Content-Type: `application/json`
+- Path:
+  - `id` long
+- Body (`YoloNodeParamCreateDTO`):
+  - `templateName` 必填，模板名称
+  - `description` 选填，模板描述
+  - `params` 必填，参数字典
+  - `isActive` 选填，是否设为当前激活模板
+- 返回: `R<Void>`
+
+### 5.10 更新参数模板
+
+- Method: `PUT`
+- URL: `/api/v1/yolo-nodes/{id}/params/templates/{templateName}`
+- Auth: 是
+- Content-Type: `application/json`
+- Path:
+  - `id` long
+  - `templateName` string
+- Body (`YoloNodeParamUpdateDTO`):
+  - `description` 选填，模板描述
+  - `params` 选填，参数字典
+  - `isActive` 选填，是否设为当前激活模板
+- 返回: `R<Void>`
+
+### 5.11 删除参数模板
+
+- Method: `DELETE`
+- URL: `/api/v1/yolo-nodes/{id}/params/templates/{templateName}`
+- Auth: 是
+- Path:
+  - `id` long
+  - `templateName` string
+- 返回: `R<Void>`
+
+### 5.12 查询节点权重汇总
+
+- Method: `GET`
+- URL: `/api/v1/yolo-nodes/{id}/weights`
+- Auth: 是
+- Path:
+  - `id` long
+- 返回: `R<YoloNodeWeightsDTO>`
+
+`YoloNodeWeightsDTO` 字段：
+
+- `activeWeight` string 当前激活权重
+- `availableWeights` string[] 可用权重列表
+
+### 5.13 手动同步节点状态
 
 - Method: `POST`
 - URL: `/api/v1/yolo-nodes/{id}/sync`
@@ -146,7 +229,7 @@
   - `id` long
 - 返回: `R<Void>`
 
-### 5.8 上传节点权重
+### 5.14 上传节点权重
 
 - Method: `POST`
 - URL: `/api/v1/yolo-nodes/{id}/weights`
@@ -155,27 +238,27 @@
 - Path:
   - `id` long
 - Form:
-  - `file` 文件
+  - `file` 权重文件（支持 `.pt/.onnx`）
 - 返回: `R<Void>`
 
-### 5.9 切换活跃权重
+### 5.15 切换活跃权重
 
 - Method: `PUT`
 - URL: `/api/v1/yolo-nodes/{id}/weights/{filename}/active`
 - Auth: 是
 - Path:
   - `id` long
-  - `filename` string
+  - `filename` string（建议传完整文件名，包含后缀，如 `sky-scan-det_640_fp16.onnx`）
 - 返回: `R<Void>`
 
-### 5.10 删除节点权重
+### 5.16 删除节点权重
 
 - Method: `DELETE`
 - URL: `/api/v1/yolo-nodes/{id}/weights/{filename}`
 - Auth: 是
 - Path:
   - `id` long
-  - `filename` string
+  - `filename` string（建议传完整文件名，包含后缀）
 - 返回: `R<Void>`
 
 ## 6. 推理模块

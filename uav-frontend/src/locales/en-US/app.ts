@@ -11,9 +11,10 @@ const app = {
   menu: {
     dashboard: "Dashboard",
     profile: "My Profile",
-    nodes: "YOLO Nodes",
+    nodes: "Model Nodes",
     inference: "Inference",
     records: "Records",
+    rbac: "Access Control",
   },
 };
 

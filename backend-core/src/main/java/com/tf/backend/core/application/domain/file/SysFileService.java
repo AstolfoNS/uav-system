@@ -21,4 +21,10 @@ public interface SysFileService {
      * @return 访问 URL
      */
     String uploadAvatar(MultipartFile file);
+
+    /**
+     * 按公开访问 URL 删除文件（仅处理当前系统 MinIO URL）
+     * @param fileUrl 公网访问 URL
+     */
+    void deleteFileByUrl(String fileUrl);
 }

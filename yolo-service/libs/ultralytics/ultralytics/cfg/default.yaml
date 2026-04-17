@@ -45,6 +45,11 @@ mask_ratio: 4 # (int) mask downsample ratio (segment only)
 
 # Classification
 dropout: 0.0 # (float) dropout for classification head (classify only)
+########################################
+nwdloss: False # (bool) use NWDLoss for bounding box regression (detect only)
+iou_ratio: 0.2 # (float) ratio of IoU loss to GCD loss
+gcdloss: True # (bool) use GCDLoss for bounding box regression (detect only)
+########################################
 
 # Val/Test settings ----------------------------------------------------------------------------------------------------
 val: True # (bool) run validation/testing during training

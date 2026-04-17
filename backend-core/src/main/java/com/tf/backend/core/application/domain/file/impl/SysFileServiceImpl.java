@@ -55,6 +55,22 @@ public class SysFileServiceImpl implements SysFileService {
         return doUpload(file, "avatar");
     }
 
+    @Override
+    public void deleteFileByUrl(String fileUrl) {
+        if (!StringUtils.hasText(fileUrl)) {
+            return;
+        }
+
+        try {
+            MinioTemplate.MinioBucket bucket = minioTemplate.bucket();
+            String objectName = minioTemplate.extractObjectName(fileUrl, bucket.getBucketName());
+            bucket.deleteFile(objectName);
+        } catch (Exception e) {
+            log.warn("跳过删除头像文件，URL 可能不属于当前 MinIO: {}", fileUrl);
+            log.debug("删除头像文件异常详情", e);
+        }
+    }
+
     /**
      * 核心上传私有方法
      */

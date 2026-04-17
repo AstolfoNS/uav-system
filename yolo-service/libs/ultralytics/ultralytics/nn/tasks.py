@@ -1,5 +1,7 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
-
+from ultralytics.nn.NewAddModules.SFS import SFS
+from ultralytics.nn.NewAddModules.CAFM import CAFMfusion
+from ultralytics.nn.modules import PConv
 import contextlib
 import pickle
 import re
@@ -1213,7 +1215,7 @@ class YOLOEModel(DetectionModel):
             preds (torch.Tensor | list[torch.Tensor], optional): Predictions.
         """
         if not hasattr(self, "criterion"):
-            from ultralytics.utils.loss import TVPDetectLoss
+            from uav.ultralytics.utils.loss import TVPDetectLoss
 
             visual_prompt = batch.get("visuals", None) is not None  # TODO
             self.criterion = (
@@ -1265,7 +1267,7 @@ class YOLOESegModel(YOLOEModel, SegmentationModel):
             preds (torch.Tensor | list[torch.Tensor], optional): Predictions.
         """
         if not hasattr(self, "criterion"):
-            from ultralytics.utils.loss import TVPSegmentLoss
+            from uav.ultralytics.utils.loss import TVPSegmentLoss
 
             visual_prompt = batch.get("visuals", None) is not None  # TODO
             self.criterion = (
@@ -1572,6 +1574,7 @@ def parse_model(d, ch, verbose=True):
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
     ch = [ch]
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+
     base_modules = frozenset(
         {
             Classify,
@@ -1608,6 +1611,7 @@ def parse_model(d, ch, verbose=True):
             SCDown,
             C2fCIB,
             A2C2f,
+            PConv,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1678,6 +1682,18 @@ def parse_model(d, ch, verbose=True):
             args = [ch[f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
+#########################
+        # elif m in {C}:
+        #     c2 = ch[f]
+        #     args = [c2, *args]
+        elif m in {CAFMfusion,SFS}:
+            c2 = ch[f[1]]
+            args = [c2, *args]
+        # elif m is DPCF:
+        #     c1 = [ch[x] for x in f]
+        #     c2 = make_divisible(min(args[0], max_channels) * width, 8)
+        #     args = [c1, c2]
+###########################
         elif m in frozenset(
             {
                 Detect,

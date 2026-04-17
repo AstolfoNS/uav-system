@@ -9,3 +9,24 @@ setuptools>=81.0.0
 python-multipart>=0.0.22
 minio>=7.2.20
 moviepy>=2.2.1
+onnx>=1.16.0
+
+[:python_version < "3.11" and platform_machine == "AMD64" and sys_platform == "win32"]
+onnxruntime<1.24.0,>=1.18.0
+
+[:python_version < "3.11" and platform_machine == "x86_64" and sys_platform == "linux"]
+onnxruntime<1.24.0,>=1.18.0
+
+[:python_version >= "3.11" and platform_machine == "AMD64" and sys_platform == "win32"]
+onnxruntime>=1.24.0
+
+[:python_version >= "3.11" and platform_machine == "x86_64" and sys_platform == "linux"]
+onnxruntime>=1.24.0
+
+[local-gpu]
+
+[local-gpu:platform_machine == "AMD64" and sys_platform == "win32"]
+onnxruntime-gpu>=1.18.0
+
+[local-gpu:platform_machine == "x86_64" and sys_platform == "linux"]
+onnxruntime-gpu>=1.18.0

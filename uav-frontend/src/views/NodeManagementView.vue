@@ -5,17 +5,29 @@ import { useRoute } from "vue-router";
 import {
   applyTemplate,
   changeActiveWeight,
+  createNodeParamTemplate,
   createNode,
+  deleteNodeParamTemplate,
   deleteWeight,
   fetchNodeDetail,
   fetchNodePage,
+  fetchNodeParamTemplates,
+  fetchNodeWeightSummary,
   removeNode,
   syncNode,
+  updateNodeParamTemplate,
   updateNode,
   uploadWeight,
 } from "@/api";
 import { useScrollEdgeState } from "@/composables/useScrollEdgeState";
-import type { YoloNode, YoloNodeUpsertRequest } from "@/types";
+import type {
+  YoloNode,
+  YoloNodeParamCreateRequest,
+  YoloNodeParamTemplate,
+  YoloNodeParamUpdateRequest,
+  YoloNodeUpsertRequest,
+  YoloNodeWeightsSummary,
+} from "@/types";
 import { notify } from "@/composables/useNotifier";
 import ConfirmActionDialog from "@/components/ConfirmActionDialog.vue";
 import PromptActionDialog from "@/components/PromptActionDialog.vue";
@@ -58,9 +70,24 @@ const detailLoading = ref(false);
 const detail = ref<Record<string, unknown> | null>(null);
 const showAllNodeDetails = ref(false);
 const selectedNode = ref<YoloNode | null>(null);
+const workspaceNodeId = ref<number | null>(null);
+const workspaceLoading = ref(false);
+const nodeTemplates = ref<YoloNodeParamTemplate[]>([]);
+const nodeWeights = ref<YoloNodeWeightsSummary | null>(null);
 const uploadingWeightNodeId = ref<number | null>(null);
 const dialogBusy = ref(false);
 const nodeDetailScrollRef = ref<HTMLElement | null>(null);
+
+const templateDialog = ref(false);
+const templateDialogMode = ref<"create" | "edit">("create");
+const templateDialogOriginalName = ref("");
+const templateForm = reactive({
+  templateName: "",
+  description: "",
+  paramsJson: "{}",
+  isActive: false,
+});
+const templateFormError = ref("");
 
 const { scrollState, refreshByElement, handleScroll } = useScrollEdgeState(
   ["nodeDetail"] as const,
@@ -84,7 +111,7 @@ const promptDialog = reactive({
 });
 
 const WEIGHT_MAX_SIZE_BYTES = 1024 * 1024 * 1024;
-const WEIGHT_ALLOWED_EXTENSIONS = [".pt", ".engine"];
+const WEIGHT_ALLOWED_EXTENSIONS = [".pt", ".onnx"];
 
 function getFileExtension(filename: string): string {
   const index = filename.lastIndexOf(".");
@@ -126,6 +153,27 @@ const offlineCountInPage = computed(
 const exceptionCountInPage = computed(
   () =>
     nodes.value.filter((item) => normalizeNodeStatus(item.status) === 2).length,
+);
+
+const workspaceNode = computed(
+  () => nodes.value.find((item) => item.id === workspaceNodeId.value) ?? null,
+);
+
+const workspaceTitle = computed(() =>
+  workspaceNode.value
+    ? `${workspaceNode.value.nodeName ?? t("node.detail")}`
+    : t("node.workspaceEmpty"),
+);
+
+const paramTemplateCount = computed(() => nodeTemplates.value.length);
+
+const activeTemplateName = computed(() => {
+  const active = nodeTemplates.value.find((item) => Boolean(item.isActive));
+  return active?.templateName ? String(active.templateName) : "";
+});
+
+const weightCount = computed(
+  () => nodeWeights.value?.availableWeights.length ?? 0,
 );
 
 const headers = computed(() => [
@@ -208,6 +256,13 @@ async function loadNodes(): Promise<void> {
 
     nodes.value = data.records ?? [];
     total.value = Number(data.total ?? 0);
+
+    if (
+      nodes.value.length > 0 &&
+      !nodes.value.some((item) => item.id === workspaceNodeId.value)
+    ) {
+      workspaceNodeId.value = Number(nodes.value[0].id);
+    }
   } catch (error) {
     notify(
       error instanceof Error ? error.message : t("node.loadFailed"),
@@ -294,6 +349,7 @@ async function openDetail(node: YoloNode): Promise<void> {
   detailDialog.value = true;
   detailLoading.value = true;
   selectedNode.value = node;
+  workspaceNodeId.value = Number(node.id);
   try {
     detail.value = await fetchNodeDetail(Number(node.id));
     showAllNodeDetails.value = false;
@@ -305,6 +361,202 @@ async function openDetail(node: YoloNode): Promise<void> {
     );
   } finally {
     detailLoading.value = false;
+  }
+}
+
+async function loadWorkspace(nodeId: number | null): Promise<void> {
+  if (!nodeId) {
+    nodeTemplates.value = [];
+    nodeWeights.value = null;
+    return;
+  }
+
+  workspaceLoading.value = true;
+  try {
+    const [templates, weights] = await Promise.all([
+      fetchNodeParamTemplates(nodeId),
+      fetchNodeWeightSummary(nodeId),
+    ]);
+    nodeTemplates.value = templates ?? [];
+    nodeWeights.value = weights ?? null;
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.loadFailed"),
+      "error",
+    );
+  } finally {
+    workspaceLoading.value = false;
+  }
+}
+
+function openCreateTemplate(): void {
+  templateDialogMode.value = "create";
+  templateDialogOriginalName.value = "";
+  templateForm.templateName = "";
+  templateForm.description = "";
+  templateForm.paramsJson = "{}";
+  templateForm.isActive = false;
+  templateFormError.value = "";
+  templateDialog.value = true;
+}
+
+function openEditTemplate(template: YoloNodeParamTemplate): void {
+  templateDialogMode.value = "edit";
+  templateDialogOriginalName.value = String(template.templateName ?? "");
+  templateForm.templateName = String(template.templateName ?? "");
+  templateForm.description = String(template.description ?? "");
+  templateForm.paramsJson = JSON.stringify(template.params ?? {}, null, 2);
+  templateForm.isActive = Boolean(template.isActive);
+  templateFormError.value = "";
+  templateDialog.value = true;
+}
+
+async function submitTemplateForm(): Promise<void> {
+  const nodeId = workspaceNodeId.value;
+  if (!nodeId || dialogBusy.value) {
+    return;
+  }
+
+  templateFormError.value = "";
+  let params: Record<string, unknown>;
+  try {
+    params = JSON.parse(templateForm.paramsJson || "{}");
+  } catch {
+    templateFormError.value = t("node.templateJsonInvalid");
+    return;
+  }
+
+  const payload: YoloNodeParamCreateRequest | YoloNodeParamUpdateRequest = {
+    description: templateForm.description.trim() || undefined,
+    params,
+    isActive: templateForm.isActive,
+  };
+
+  try {
+    dialogBusy.value = true;
+    if (templateDialogMode.value === "create") {
+      await createNodeParamTemplate(nodeId, {
+        templateName: templateForm.templateName.trim(),
+        description: templateForm.description.trim() || undefined,
+        params,
+        isActive: templateForm.isActive,
+      });
+      notify(t("node.templateCreated"), "success");
+    } else {
+      await updateNodeParamTemplate(
+        nodeId,
+        templateDialogOriginalName.value,
+        payload,
+      );
+      notify(t("node.templateUpdated"), "success");
+    }
+
+    templateDialog.value = false;
+    await loadWorkspace(nodeId);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.templateFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function removeTemplate(templateName: string): Promise<void> {
+  const nodeId = workspaceNodeId.value;
+  if (!nodeId) {
+    return;
+  }
+
+  const confirmed = window.confirm(t("node.templateDeleteConfirm"));
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    dialogBusy.value = true;
+    await deleteNodeParamTemplate(nodeId, templateName);
+    notify(t("node.templateDeleted"), "success");
+    await loadWorkspace(nodeId);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.templateFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function applyWorkspaceTemplate(templateName: string): Promise<void> {
+  const nodeId = workspaceNodeId.value;
+  if (!nodeId) {
+    return;
+  }
+
+  try {
+    dialogBusy.value = true;
+    await applyTemplate(nodeId, templateName);
+    notify(t("node.templateSuccess"), "success");
+    await loadNodes();
+    await loadWorkspace(nodeId);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.templateFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function switchWorkspaceWeight(filename: string): Promise<void> {
+  const nodeId = workspaceNodeId.value;
+  if (!nodeId || dialogBusy.value) {
+    return;
+  }
+
+  try {
+    dialogBusy.value = true;
+    await changeActiveWeight(nodeId, filename);
+    notify(t("node.switchSuccess"), "success");
+    await loadNodes();
+    await loadWorkspace(nodeId);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.switchFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function deleteWorkspaceWeight(filename: string): Promise<void> {
+  const nodeId = workspaceNodeId.value;
+  if (!nodeId || dialogBusy.value) {
+    return;
+  }
+
+  const confirmed = window.confirm(t("node.deleteWeightConfirm"));
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    dialogBusy.value = true;
+    await deleteWeight(nodeId, filename);
+    notify(t("node.deleteWeightSuccess"), "success");
+    await loadNodes();
+    await loadWorkspace(nodeId);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.deleteWeightFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
   }
 }
 
@@ -374,7 +626,7 @@ async function triggerWeightUpload(nodeId: number): Promise<void> {
 
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = ".pt,.engine";
+  input.accept = ".pt,.onnx";
   input.onchange = async () => {
     const target = input.files?.[0];
     if (!target) {
@@ -485,9 +737,17 @@ function asText(value: unknown): string {
     return t("common.unavailable");
   }
   if (typeof value === "object") {
-    return JSON.stringify(value);
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
   }
   return String(value);
+}
+
+function isStructuredJsonValue(value: string): boolean {
+  return value.startsWith("{\n") || value.startsWith("[\n");
 }
 
 function detailRowCount(detailData: Record<string, unknown>): number {
@@ -552,6 +812,14 @@ watch(
       current.value = 1;
     }
     await loadNodes();
+  },
+  { immediate: true },
+);
+
+watch(
+  workspaceNodeId,
+  async (nodeId) => {
+    await loadWorkspace(nodeId);
   },
   { immediate: true },
 );
@@ -668,12 +936,254 @@ watch(
       </v-col>
       <v-col cols="12" md="8">
         <v-card class="card-ambient card-spacious summary-card" rounded="xl">
-          <v-card-title class="text-subtitle-1 font-weight-bold">
-            {{ t("node.table.actions") }}
+          <v-card-title class="d-flex align-center ga-3 flex-wrap">
+            <span class="text-subtitle-1 font-weight-bold">
+              {{ t("node.workspaceTitle") }}
+            </span>
+            <v-spacer />
+            <v-chip color="primary" variant="tonal">
+              {{ workspaceTitle }}
+            </v-chip>
           </v-card-title>
-          <v-card-text class="text-body-2 text-medium-emphasis">
-            mdi-eye / mdi-pencil / mdi-sync / mdi-tune-variant / mdi-upload /
-            mdi-swap-horizontal / mdi-file-remove / mdi-delete
+          <v-card-text>
+            <div class="workspace-toolbar">
+              <v-select
+                v-model="workspaceNodeId"
+                :disabled="nodes.length === 0"
+                :items="nodes"
+                :label="t('node.workspaceNode')"
+                item-title="nodeName"
+                item-value="id"
+                variant="outlined"
+                class="workspace-node-select"
+              />
+              <div class="workspace-actions">
+                <v-btn
+                  class="btn-secondary-action"
+                  color="primary"
+                  prepend-icon="mdi-refresh"
+                  variant="tonal"
+                  :loading="workspaceLoading"
+                  @click="loadWorkspace(workspaceNodeId)"
+                >
+                  {{ t("common.refresh") }}
+                </v-btn>
+                <v-btn
+                  class="btn-primary-action"
+                  color="primary"
+                  prepend-icon="mdi-tune-variant"
+                  variant="elevated"
+                  :disabled="!workspaceNodeId"
+                  @click="openCreateTemplate"
+                >
+                  {{ t("node.templateCreate") }}
+                </v-btn>
+                <v-btn
+                  class="btn-secondary-action"
+                  color="secondary"
+                  prepend-icon="mdi-upload"
+                  variant="tonal"
+                  :disabled="!workspaceNodeId"
+                  @click="triggerWeightUpload(Number(workspaceNodeId))"
+                >
+                  {{ t("node.uploadWeight") }}
+                </v-btn>
+              </div>
+            </div>
+            <v-row class="mt-4" dense>
+              <v-col cols="12" md="6">
+                <v-card variant="tonal" rounded="lg" class="h-100">
+                  <v-card-title class="d-flex align-center ga-2">
+                    <span class="text-subtitle-2 font-weight-bold">
+                      {{ t("node.paramTemplates") }}
+                    </span>
+                    <v-spacer />
+                    <v-chip size="small" variant="flat" color="primary">
+                      {{ paramTemplateCount }}
+                    </v-chip>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-chip
+                      v-if="activeTemplateName"
+                      class="mb-3"
+                      color="success"
+                      variant="flat"
+                    >
+                      {{ t("node.activeTemplate") }}:
+                      {{ activeTemplateName }}
+                    </v-chip>
+                    <div
+                      v-if="nodeTemplates.length > 0"
+                      class="workspace-list scroll-elegant"
+                    >
+                      <v-card
+                        v-for="template in nodeTemplates"
+                        :key="template.templateName"
+                        rounded="lg"
+                        variant="outlined"
+                        class="workspace-item"
+                      >
+                        <v-card-title class="d-flex align-center ga-2">
+                          <span
+                            class="text-body-1 font-weight-medium"
+                            :class="{
+                              'workspace-template-name--active':
+                                template.isActive,
+                            }"
+                          >
+                            {{ template.templateName }}
+                          </span>
+                          <v-spacer />
+                          <v-tooltip
+                            :text="t('node.templateTitle')"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                icon="mdi-play"
+                                size="x-small"
+                                variant="text"
+                                class="workspace-icon-btn"
+                                :color="
+                                  template.isActive ? 'success' : undefined
+                                "
+                                :disabled="dialogBusy"
+                                v-bind="props"
+                                @click="
+                                  applyWorkspaceTemplate(template.templateName)
+                                "
+                              />
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            :text="t('node.templateEdit')"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                icon="mdi-pencil"
+                                size="x-small"
+                                variant="text"
+                                class="workspace-icon-btn"
+                                :disabled="dialogBusy"
+                                v-bind="props"
+                                @click="openEditTemplate(template)"
+                              />
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip :text="t('common.delete')" location="top">
+                            <template #activator="{ props }">
+                              <v-btn
+                                icon="mdi-delete"
+                                size="x-small"
+                                variant="text"
+                                class="workspace-icon-btn workspace-icon-btn--danger"
+                                :disabled="dialogBusy"
+                                v-bind="props"
+                                @click="removeTemplate(template.templateName)"
+                              />
+                            </template>
+                          </v-tooltip>
+                        </v-card-title>
+                        <v-card-subtitle v-if="template.description">
+                          {{ template.description }}
+                        </v-card-subtitle>
+                        <v-card-text>
+                          <pre class="workspace-json">{{
+                            asText(template.params)
+                          }}</pre>
+                        </v-card-text>
+                      </v-card>
+                    </div>
+                    <div v-else class="text-body-2 text-medium-emphasis">
+                      {{ t("node.templateEmpty") }}
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-card variant="tonal" rounded="lg" class="h-100">
+                  <v-card-title class="d-flex align-center ga-2">
+                    <span class="text-subtitle-2 font-weight-bold">
+                      {{ t("node.weightSummary") }}
+                    </span>
+                    <v-spacer />
+                    <v-chip size="small" variant="flat" color="secondary">
+                      {{ weightCount }}
+                    </v-chip>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-chip
+                      v-if="nodeWeights?.activeWeight"
+                      class="mb-3"
+                      color="success"
+                      variant="flat"
+                    >
+                      {{ t("node.activeWeight") }}:
+                      {{ nodeWeights.activeWeight }}
+                    </v-chip>
+                    <div
+                      v-if="nodeWeights?.availableWeights?.length"
+                      class="workspace-weight-wall scroll-elegant"
+                    >
+                      <div
+                        v-for="filename in nodeWeights.availableWeights"
+                        :key="filename"
+                        class="workspace-weight-item"
+                      >
+                        <v-chip
+                          :color="
+                            filename === nodeWeights?.activeWeight
+                              ? 'success'
+                              : 'default'
+                          "
+                          variant="tonal"
+                        >
+                          {{ filename }}
+                        </v-chip>
+                        <div class="d-flex ga-1 flex-wrap">
+                          <v-tooltip
+                            :text="t('node.switchTitle')"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                icon="mdi-swap-horizontal"
+                                size="x-small"
+                                variant="text"
+                                class="workspace-icon-btn"
+                                :disabled="dialogBusy"
+                                v-bind="props"
+                                @click="switchWorkspaceWeight(filename)"
+                              />
+                            </template>
+                          </v-tooltip>
+                          <v-tooltip
+                            :text="t('node.deleteWeightTitle')"
+                            location="top"
+                          >
+                            <template #activator="{ props }">
+                              <v-btn
+                                icon="mdi-file-remove"
+                                size="x-small"
+                                variant="text"
+                                class="workspace-icon-btn workspace-icon-btn--danger"
+                                :disabled="dialogBusy"
+                                v-bind="props"
+                                @click="deleteWorkspaceWeight(filename)"
+                              />
+                            </template>
+                          </v-tooltip>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="text-body-2 text-medium-emphasis">
+                      {{ t("node.weightEmpty") }}
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-card-text>
         </v-card>
       </v-col>
@@ -705,56 +1215,96 @@ watch(
 
           <template #item.actions="{ item }">
             <div class="d-flex ga-1 flex-wrap action-strip">
-              <v-btn
-                icon="mdi-eye"
-                size="x-small"
-                variant="text"
-                @click="openDetail(item)"
-              />
-              <v-btn
-                icon="mdi-pencil"
-                size="x-small"
-                variant="text"
-                @click="openEdit(item)"
-              />
-              <v-btn
-                icon="mdi-sync"
-                size="x-small"
-                variant="text"
-                @click="triggerSync(Number(item.id))"
-              />
-              <v-btn
-                icon="mdi-tune-variant"
-                size="x-small"
-                variant="text"
-                @click="triggerTemplate(Number(item.id))"
-              />
-              <v-btn
-                icon="mdi-upload"
-                size="x-small"
-                variant="text"
-                :loading="uploadingWeightNodeId === Number(item.id)"
-                :disabled="uploadingWeightNodeId !== null"
-                @click="triggerWeightUpload(Number(item.id))"
-              />
-              <v-btn
-                icon="mdi-swap-horizontal"
-                size="x-small"
-                variant="text"
-                @click="triggerChangeWeight(Number(item.id))"
-              />
-              <v-btn
-                icon="mdi-file-remove"
-                size="x-small"
-                variant="text"
-                @click="triggerDeleteWeight(Number(item.id))"
-              />
-              <v-btn
-                icon="mdi-delete"
-                size="x-small"
-                variant="text"
-                @click="remove(Number(item.id))"
-              />
+              <v-tooltip :text="t('node.actionView')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-eye"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="openDetail(item)"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionEdit')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-pencil"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="openEdit(item)"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionSync')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-sync"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="triggerSync(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionParams')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-tune-variant"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="triggerTemplate(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionUploadWeight')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-upload"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    :loading="uploadingWeightNodeId === Number(item.id)"
+                    :disabled="uploadingWeightNodeId !== null"
+                    @click="triggerWeightUpload(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionSwitchWeight')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-swap-horizontal"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="triggerChangeWeight(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionDeleteWeight')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-file-remove"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="triggerDeleteWeight(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
+              <v-tooltip :text="t('node.actionDelete')" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon="mdi-delete"
+                    size="x-small"
+                    variant="text"
+                    v-bind="props"
+                    @click="remove(Number(item.id))"
+                  />
+                </template>
+              </v-tooltip>
             </div>
           </template>
         </v-data-table>
@@ -863,6 +1413,74 @@ watch(
     @confirm="submitPrompt"
   />
 
+  <v-dialog v-model="templateDialog" max-width="860">
+    <v-card rounded="xl">
+      <v-card-title class="d-flex align-center ga-2">
+        {{
+          templateDialogMode === "create"
+            ? t("node.templateCreate")
+            : t("node.templateEdit")
+        }}
+        <v-spacer />
+        <v-chip v-if="workspaceTitle" color="primary" variant="tonal">
+          {{ workspaceTitle }}
+        </v-chip>
+      </v-card-title>
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="templateForm.templateName"
+              :disabled="templateDialogMode === 'edit'"
+              :label="t('node.templateName')"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-switch
+              v-model="templateForm.isActive"
+              :label="t('node.templateActive')"
+              color="primary"
+              inset
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-text-field
+              v-model="templateForm.description"
+              :label="t('node.templateDescription')"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-textarea
+              v-model="templateForm.paramsJson"
+              :label="t('node.templateParamsJson')"
+              auto-grow
+              rows="12"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12" v-if="templateFormError">
+            <div class="text-caption text-error">{{ templateFormError }}</div>
+          </v-col>
+        </v-row>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="templateDialog = false">{{
+          t("common.cancel")
+        }}</v-btn>
+        <v-btn
+          color="primary"
+          :loading="dialogBusy"
+          @click="submitTemplateForm"
+        >
+          {{ t("common.save") }}
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-dialog v-model="detailDialog" max-width="860">
     <v-card rounded="xl">
       <v-card-title class="d-flex align-center ga-2">
@@ -929,7 +1547,14 @@ watch(
                   <div class="text-caption text-medium-emphasis mono">
                     {{ item.key }}
                   </div>
-                  <div class="text-body-2">{{ item.value }}</div>
+                  <div
+                    class="text-body-2 detail-value"
+                    :class="{
+                      'detail-value--json': isStructuredJsonValue(item.value),
+                    }"
+                  >
+                    {{ item.value }}
+                  </div>
                 </v-col>
               </v-row>
             </div>
@@ -946,6 +1571,95 @@ watch(
 <style scoped>
 .summary-card {
   min-height: 144px;
+}
+
+.workspace-node-select {
+  width: min(420px, 100%);
+}
+
+.workspace-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.workspace-list {
+  display: grid;
+  gap: 12px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workspace-item {
+  overflow: hidden;
+}
+
+.workspace-icon-btn {
+  background: rgba(31, 122, 140, 0.14);
+  border: 1px solid rgba(31, 122, 140, 0.28);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.workspace-icon-btn:hover {
+  background: rgba(31, 122, 140, 0.22);
+  border-color: rgba(31, 122, 140, 0.4);
+}
+
+.workspace-icon-btn--danger {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.26);
+}
+
+.workspace-icon-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.38);
+}
+
+.workspace-template-name--active {
+  color: rgb(var(--v-theme-success));
+}
+
+.workspace-json {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border-radius: 10px;
+  background: rgba(18, 53, 66, 0.06);
+  border: 1px solid rgba(31, 122, 140, 0.16);
+}
+
+.workspace-weight-wall {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workspace-weight-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(18, 53, 66, 0.06);
+  border: 1px solid rgba(31, 122, 140, 0.16);
 }
 
 .filter-row {
@@ -970,5 +1684,31 @@ watch(
   max-height: 360px;
   overflow: auto;
   padding-right: 4px;
+}
+
+.detail-value {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.detail-value--json {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(21, 58, 73, 0.08);
+  border: 1px solid rgba(31, 122, 140, 0.2);
+}
+
+@media (max-width: 960px) {
+  .workspace-list,
+  .workspace-weight-wall {
+    max-height: 280px;
+  }
+
+  .workspace-node-select {
+    width: 100%;
+  }
 }
 </style>

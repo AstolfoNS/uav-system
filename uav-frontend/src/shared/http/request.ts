@@ -26,6 +26,39 @@ type QueryParams = URLSearchParams | object;
 
 interface MethodOptions extends Omit<RequestOptions, "method"> {}
 
+let refreshInFlight: Promise<void> | null = null;
+
+type RefreshFailureReason = "session-expired" | "transient";
+
+class RefreshTokenError extends Error {
+  readonly reason: RefreshFailureReason;
+
+  constructor(reason: RefreshFailureReason, message: string) {
+    super(message);
+    this.name = "RefreshTokenError";
+    this.reason = reason;
+  }
+}
+
+function isSessionExpiredSignal(code?: number, message?: string): boolean {
+  if (code === 401 || code === 902 || code === 903) {
+    return true;
+  }
+
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("登录状态已失效") ||
+    normalized.includes("登录已过期") ||
+    normalized.includes("refresh token") ||
+    (normalized.includes("token") &&
+      (normalized.includes("expired") || normalized.includes("invalid")))
+  );
+}
+
 function toTokenPair(payload: AuthTokenResponse): {
   accessToken: string;
   refreshToken: string;
@@ -45,24 +78,69 @@ function toTokenPair(payload: AuthTokenResponse): {
 async function refreshAccessToken(): Promise<void> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
-    throw new Error(i18n.global.t("errors.refreshTokenMissing"));
+    throw new RefreshTokenError(
+      "session-expired",
+      i18n.global.t("errors.refreshTokenMissing"),
+    );
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: "POST",
-    headers: {
-      "Refresh-Token": `Bearer ${refreshToken}`,
-    },
-  });
-
-  const payload = (await response.json()) as ApiEnvelope<AuthTokenResponse>;
-
-  if (!response.ok || payload.code !== 200) {
-    throw new Error(payload.msg || i18n.global.t("errors.refreshFailed"));
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Refresh-Token": `Bearer ${refreshToken}`,
+      },
+    });
+  } catch {
+    throw new RefreshTokenError(
+      "transient",
+      i18n.global.t("errors.refreshRetryLater"),
+    );
   }
 
-  const pair = toTokenPair(payload.data);
-  saveTokens(pair.accessToken, pair.refreshToken);
+  let payload: ApiEnvelope<AuthTokenResponse> | null = null;
+  try {
+    payload = (await response.json()) as ApiEnvelope<AuthTokenResponse>;
+  } catch {
+    payload = null;
+  }
+
+  const code = payload?.code;
+  const message = payload?.msg;
+  if (!response.ok || code !== 200 || !payload?.data) {
+    if (response.status === 401 || isSessionExpiredSignal(code, message)) {
+      throw new RefreshTokenError(
+        "session-expired",
+        message || i18n.global.t("errors.sessionExpired"),
+      );
+    }
+
+    throw new RefreshTokenError(
+      "transient",
+      message || i18n.global.t("errors.refreshRetryLater"),
+    );
+  }
+
+  try {
+    const pair = toTokenPair(payload.data);
+    saveTokens(pair.accessToken, pair.refreshToken);
+  } catch {
+    throw new RefreshTokenError(
+      "transient",
+      i18n.global.t("errors.refreshRetryLater"),
+    );
+  }
+}
+
+async function refreshAccessTokenSingleFlight(): Promise<void> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+
+  return refreshInFlight;
 }
 
 function withQuery(path: string, params?: QueryParams): string {
@@ -127,13 +205,25 @@ export async function apiRequest<T>(
     body: requestBody,
   });
 
-  if ((response.status === 401 || response.status === 403) && auth && retry) {
+  if (response.status === 401 && auth && retry) {
     try {
-      await refreshAccessToken();
+      await refreshAccessTokenSingleFlight();
       return await apiRequest<T>(path, { ...options, retry: false });
-    } catch {
-      clearTokens();
-      throw new Error(i18n.global.t("errors.sessionExpired"));
+    } catch (error) {
+      if (error instanceof RefreshTokenError) {
+        if (error.reason === "session-expired") {
+          clearTokens();
+          throw new Error(
+            error.message || i18n.global.t("errors.sessionExpired"),
+          );
+        }
+
+        throw new Error(
+          error.message || i18n.global.t("errors.refreshRetryLater"),
+        );
+      }
+
+      throw new Error(i18n.global.t("errors.refreshRetryLater"));
     }
   }
 

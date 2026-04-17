@@ -11,8 +11,16 @@ const { t } = useI18n();
 const router = useRouter();
 
 const loading = ref(false);
+const isInitialLoadDone = ref(false);
 const nodes = ref<YoloNode[]>([]);
 const recentRecords = ref<YoloDetectionRecord[]>([]);
+
+const sectionLoading = computed(
+  () => !isInitialLoadDone.value && loading.value,
+);
+const sectionRefreshing = computed(
+  () => isInitialLoadDone.value && loading.value,
+);
 
 function normalizeNodeStatus(status: unknown): number {
   if (typeof status === "number") {
@@ -107,6 +115,7 @@ async function loadData(): Promise<void> {
     notify(message, "error");
   } finally {
     loading.value = false;
+    isInitialLoadDone.value = true;
   }
 }
 
@@ -276,12 +285,13 @@ onMounted(loadData);
           <v-divider />
           <v-card-text>
             <v-progress-linear
-              v-if="loading"
+              v-if="sectionLoading || sectionRefreshing"
+              class="mb-3"
               color="primary"
               indeterminate
               rounded
             />
-            <v-list v-else class="status-list" density="comfortable">
+            <v-list class="status-list" density="comfortable">
               <v-list-item
                 prepend-icon="mdi-check-circle-outline"
                 :title="t('dashboard.online')"
@@ -310,7 +320,7 @@ onMounted(loadData);
             <v-data-table
               :headers="tableHeaders"
               :items="recentRecords"
-              :loading="loading"
+              :loading="sectionLoading"
               :loading-text="t('common.loading')"
               :no-data-text="t('dashboard.recentRecordsEmpty')"
               density="comfortable"
@@ -343,6 +353,13 @@ onMounted(loadData);
                 </v-chip>
               </template>
             </v-data-table>
+            <v-progress-linear
+              v-if="sectionRefreshing"
+              class="mt-2"
+              color="primary"
+              indeterminate
+              rounded
+            />
           </v-card-text>
         </v-card>
       </v-col>

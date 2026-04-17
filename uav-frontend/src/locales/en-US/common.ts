@@ -11,6 +11,8 @@ const common = {
   copy: "Copy",
   copied: "Copied",
   copyFailed: "Copy failed",
+  refresh: "Refresh",
+  active: "Active",
   showAll: "Show all",
   showLess: "Show less",
   loading: "Loading...",

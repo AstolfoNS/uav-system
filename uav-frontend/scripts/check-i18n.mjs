@@ -14,6 +14,7 @@ const LOCALE_DOMAINS = [
   "login",
   "node",
   "profile",
+  "rbac",
   "records",
 ];
 

@@ -2,7 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { onBeforeRouteLeave } from "vue-router";
-import { fetchMyProfile, updateMyProfile, uploadAvatar } from "@/api";
+import {
+  fetchMyProfile,
+  updateMyPassword,
+  updateMyProfile,
+  uploadAvatar,
+} from "@/api";
 import { notify } from "@/composables/useNotifier";
 import type { UserProfile, UserProfileUpdateRequest } from "@/types";
 import PageHero from "@/components/PageHero.vue";
@@ -12,6 +17,10 @@ const { t } = useI18n();
 const loading = ref(false);
 const saving = ref(false);
 const uploading = ref(false);
+const passwordSaving = ref(false);
+const passwordDialog = ref(false);
+const usernameServerError = ref("");
+const avatarInputRef = ref<HTMLInputElement | null>(null);
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
   null,
 );
@@ -31,8 +40,116 @@ const form = reactive({
   permissions: [] as string[],
 });
 
+const passwordForm = reactive({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+});
+
+const passwordVisibility = reactive({
+  current: false,
+  next: false,
+  confirm: false,
+});
+
+type PasswordStrengthLevel = "weak" | "medium" | "strong";
+
+function passwordStrengthScore(password: string): number {
+  if (!password) {
+    return 0;
+  }
+
+  let score = 0;
+  if (password.length >= 6) {
+    score += 1;
+  }
+  if (password.length >= 10) {
+    score += 1;
+  }
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) {
+    score += 1;
+  }
+  if (/\d/.test(password)) {
+    score += 1;
+  }
+  if (/[^A-Za-z0-9]/.test(password)) {
+    score += 1;
+  }
+
+  return Math.min(score, 5);
+}
+
+const passwordStrengthLevel = computed<PasswordStrengthLevel>(() => {
+  const score = passwordStrengthScore(passwordForm.newPassword);
+  if (score >= 4) {
+    return "strong";
+  }
+  if (score >= 2) {
+    return "medium";
+  }
+  return "weak";
+});
+
+const passwordStrengthText = computed(() => {
+  const level = passwordStrengthLevel.value;
+  if (level === "strong") {
+    return t("profile.passwordStrengthStrong");
+  }
+  if (level === "medium") {
+    return t("profile.passwordStrengthMedium");
+  }
+  return t("profile.passwordStrengthWeak");
+});
+
+const passwordStrengthColor = computed(() => {
+  const level = passwordStrengthLevel.value;
+  if (level === "strong") {
+    return "success";
+  }
+  if (level === "medium") {
+    return "warning";
+  }
+  return "error";
+});
+
+const passwordStrengthProgress = computed(() => {
+  const score = passwordStrengthScore(passwordForm.newPassword);
+  return Math.max(10, score * 20);
+});
+
+const showPasswordMatchHint = computed(
+  () =>
+    passwordForm.newPassword.length > 0 ||
+    passwordForm.confirmPassword.length > 0,
+);
+
+const passwordMatched = computed(
+  () =>
+    passwordForm.newPassword.length > 0 &&
+    passwordForm.confirmPassword.length > 0 &&
+    passwordForm.newPassword === passwordForm.confirmPassword,
+);
+
+const passwordMatchHintText = computed(() =>
+  passwordMatched.value
+    ? t("profile.passwordMatchHintMatched")
+    : t("profile.passwordMatchHintMismatched"),
+);
+
+const passwordMatchHintColor = computed(() =>
+  passwordMatched.value ? "success" : "error",
+);
+
 const nicknameRules = computed(() => [
   (value: string) => !!value?.trim() || t("profile.nicknameRequired"),
+]);
+
+const usernameRules = computed(() => [
+  (value: string) => !!value?.trim() || t("profile.usernameRequired"),
+  (value: string) =>
+    /^[A-Za-z0-9_]{4,32}$/.test(value.trim())
+      ? true
+      : t("profile.usernameInvalid"),
 ]);
 
 const emailRules = computed(() => [
@@ -65,11 +182,36 @@ const genderItems = computed(() => [
   { title: t("profile.genderFemale"), value: 2 },
 ]);
 
-const avatarPreview = computed(
-  () => form.avatarUrl || "https://cdn.vuetifyjs.com/images/john.jpg",
+const avatarPreview = computed(() => form.avatarUrl.trim());
+const hasAvatar = computed(() => avatarPreview.value.length > 0);
+const roleList = computed(() =>
+  Array.from(
+    new Set(
+      form.roles
+        .map((item) => String(item).trim())
+        .filter((item) => item.length > 0),
+    ),
+  ),
 );
+const permissionList = computed(() =>
+  Array.from(
+    new Set(
+      form.permissions
+        .map((item) => String(item).trim())
+        .filter((item) => item.length > 0),
+    ),
+  ),
+);
+const displayName = computed(
+  () => form.nickname.trim() || form.username.trim() || "-",
+);
+const lastLoginText = computed(() => {
+  const value = String(serverProfile.value?.lastLoginTime ?? "").trim();
+  return value || t("common.unavailable");
+});
 
 interface ProfileComparableSnapshot {
+  username: string;
   nickname: string;
   email: string | null;
   phoneNumber: string | null;
@@ -101,6 +243,7 @@ function asString(value: unknown): string {
 }
 
 function fillForm(profile: UserProfile): void {
+  usernameServerError.value = "";
   form.id = asString(profile.id);
   form.username = asString(profile.username);
   form.nickname = asString(profile.nickname);
@@ -122,7 +265,29 @@ function resetFormToServer(): void {
     return;
   }
 
+  usernameServerError.value = "";
   fillForm(serverProfile.value);
+}
+
+function onUsernameInput(): void {
+  if (usernameServerError.value) {
+    usernameServerError.value = "";
+  }
+}
+
+function getUsernameFieldError(error: unknown): string | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const message = error.message.trim();
+  const lowered = message.toLowerCase();
+  const isDuplicate =
+    message.includes("用户名已存在") ||
+    (/username/.test(lowered) &&
+      /(exist|exists|duplicate|duplicated|taken|already)/.test(lowered));
+
+  return isDuplicate ? message : null;
 }
 
 function normalizeOptional(value: string): string | null {
@@ -137,6 +302,7 @@ function normalizeOptionalUnknown(value: unknown): string | null {
 
 function buildSnapshotFromForm(): ProfileComparableSnapshot {
   return {
+    username: form.username.trim(),
     nickname: form.nickname.trim(),
     email: normalizeOptional(form.email),
     phoneNumber: normalizeOptional(form.phoneNumber),
@@ -150,6 +316,7 @@ function buildSnapshotFromProfile(
   profile: UserProfile,
 ): ProfileComparableSnapshot {
   return {
+    username: String(profile.username ?? "").trim(),
     nickname: String(profile.nickname ?? "").trim(),
     email: normalizeOptionalUnknown(profile.email),
     phoneNumber: normalizeOptionalUnknown(profile.phoneNumber),
@@ -179,6 +346,21 @@ function normalizeAvatarSelection(file: File | File[] | null): File | null {
     return file[0] ?? null;
   }
   return file;
+}
+
+function openAvatarPicker(): void {
+  if (uploading.value) {
+    return;
+  }
+
+  avatarInputRef.value?.click();
+}
+
+async function onAvatarInputChange(event: Event): Promise<void> {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0] ?? null;
+  await onAvatarSelect(file);
+  target.value = "";
 }
 
 function validateAvatarFile(file: File): boolean {
@@ -244,6 +426,8 @@ async function submit(): Promise<void> {
     return;
   }
 
+  usernameServerError.value = "";
+
   const result = await formRef.value?.validate();
   if (!result?.valid) {
     return;
@@ -252,16 +436,85 @@ async function submit(): Promise<void> {
   saving.value = true;
   try {
     const updated = await updateMyProfile(buildPayload());
+    usernameServerError.value = "";
     serverProfile.value = updated;
     fillForm(updated);
     notify(t("profile.saveSuccess"), "success");
   } catch (error) {
+    const fieldError = getUsernameFieldError(error);
+    if (fieldError) {
+      usernameServerError.value = fieldError;
+      return;
+    }
+
     notify(
       error instanceof Error ? error.message : t("profile.saveFailed"),
       "error",
     );
   } finally {
     saving.value = false;
+  }
+}
+
+function resetPasswordForm(): void {
+  passwordForm.currentPassword = "";
+  passwordForm.newPassword = "";
+  passwordForm.confirmPassword = "";
+  passwordVisibility.current = false;
+  passwordVisibility.next = false;
+  passwordVisibility.confirm = false;
+}
+
+function openPasswordDialog(): void {
+  resetPasswordForm();
+  passwordDialog.value = true;
+}
+
+async function submitPasswordChange(): Promise<void> {
+  if (passwordSaving.value) {
+    return;
+  }
+
+  if (!passwordForm.currentPassword.trim()) {
+    notify(t("profile.passwordRequired"), "warning");
+    return;
+  }
+
+  if (
+    !passwordForm.newPassword.trim() ||
+    !passwordForm.confirmPassword.trim()
+  ) {
+    notify(t("profile.passwordRequired"), "warning");
+    return;
+  }
+
+  if (passwordForm.newPassword.length < 6) {
+    notify(t("profile.passwordMinLength"), "warning");
+    return;
+  }
+
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    notify(t("profile.passwordNotMatch"), "warning");
+    return;
+  }
+
+  passwordSaving.value = true;
+  try {
+    await updateMyPassword({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword,
+    });
+    notify(t("profile.passwordSaveSuccess"), "success");
+    passwordDialog.value = false;
+    resetPasswordForm();
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("profile.passwordSaveFailed"),
+      "error",
+    );
+  } finally {
+    passwordSaving.value = false;
   }
 }
 
@@ -310,44 +563,84 @@ onBeforeUnmount(() => {
 
     <v-row>
       <v-col cols="12" md="4">
-        <v-card class="card-ambient card-spacious" rounded="xl">
-          <v-card-title>{{ t("profile.avatar") }}</v-card-title>
-          <v-card-text class="d-flex flex-column align-center ga-4">
-            <v-avatar border color="primary" size="132" variant="tonal">
+        <v-card
+          class="card-ambient card-spacious profile-side-card"
+          rounded="xl"
+        >
+          <v-card-title>{{ t("profile.accountOverview") }}</v-card-title>
+          <v-card-text
+            class="d-flex flex-column align-center ga-4 profile-side-card__body"
+          >
+            <v-avatar
+              v-if="hasAvatar"
+              border
+              color="primary"
+              size="132"
+              variant="tonal"
+            >
               <v-img :src="avatarPreview" cover />
             </v-avatar>
+            <div v-if="!hasAvatar" class="text-body-2 text-medium-emphasis">
+              {{ t("profile.avatarEmpty") }}
+            </div>
 
-            <v-file-input
+            <div
+              class="text-center profile-display-name text-subtitle-1 font-weight-bold"
+            >
+              {{ displayName }}
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              @{{ form.username || "-" }}
+            </div>
+
+            <input
+              ref="avatarInputRef"
               accept="image/jpeg,image/jpg,image/png"
-              :disabled="uploading"
-              hide-details="auto"
-              prepend-icon="mdi-camera"
-              :label="t('profile.uploadAvatar')"
-              variant="outlined"
-              @update:model-value="onAvatarSelect"
+              class="profile-file-input"
+              type="file"
+              @change="onAvatarInputChange"
             />
+
+            <v-btn
+              class="btn-secondary-action"
+              color="secondary"
+              :loading="uploading"
+              prepend-icon="mdi-camera"
+              variant="tonal"
+              @click="openAvatarPicker"
+            >
+              {{ t("profile.avatarAction") }}
+            </v-btn>
 
             <div class="text-caption text-medium-emphasis text-center">
               {{ t("profile.avatarTip") }}
             </div>
-          </v-card-text>
-        </v-card>
 
-        <v-card class="card-ambient card-spacious mt-4" rounded="xl">
-          <v-card-title>{{ t("profile.securityInfo") }}</v-card-title>
-          <v-card-text>
-            <v-text-field
-              v-model="form.id"
-              :label="t('profile.accountId')"
-              readonly
-              variant="outlined"
-            />
-            <v-text-field
-              v-model="form.username"
-              :label="t('profile.username')"
-              readonly
-              variant="outlined"
-            />
+            <v-divider class="w-100 my-2" />
+
+            <div class="profile-side-meta w-100">
+              <div class="profile-side-meta__item">
+                <span class="text-caption text-medium-emphasis">{{
+                  t("profile.accountId")
+                }}</span>
+                <span class="text-body-2">{{ form.id || "-" }}</span>
+              </div>
+              <div class="profile-side-meta__item">
+                <span class="text-caption text-medium-emphasis">{{
+                  t("profile.lastLoginTime")
+                }}</span>
+                <span class="text-body-2">{{ lastLoginText }}</span>
+              </div>
+            </div>
+
+            <v-btn
+              class="btn-primary-action w-100"
+              color="primary"
+              prepend-icon="mdi-lock-reset"
+              @click="openPasswordDialog"
+            >
+              {{ t("profile.changePassword") }}
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -362,6 +655,19 @@ onBeforeUnmount(() => {
               @submit.prevent="submit"
             >
               <v-row>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="form.username"
+                    :label="t('profile.username')"
+                    :error-messages="
+                      usernameServerError ? [usernameServerError] : []
+                    "
+                    :rules="usernameRules"
+                    required
+                    variant="outlined"
+                    @update:model-value="onUsernameInput"
+                  />
+                </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model="form.nickname"
@@ -423,63 +729,272 @@ onBeforeUnmount(() => {
           </v-card-text>
         </v-card>
 
-        <v-row class="mt-1">
-          <v-col cols="12" md="6">
-            <v-card class="card-ambient" rounded="xl">
-              <v-card-title>{{ t("profile.roles") }}</v-card-title>
-              <v-card-text>
-                <div
-                  v-if="form.roles.length === 0"
-                  class="text-medium-emphasis"
-                >
-                  {{ t("profile.noneRoles") }}
+        <v-card class="card-ambient mt-4" rounded="xl">
+          <v-card-title class="d-flex align-center ga-2">
+            <v-icon size="20">mdi-shield-account-outline</v-icon>
+            {{ t("profile.accessSummary") }}
+          </v-card-title>
+          <v-card-text>
+            <v-row class="access-grid" dense>
+              <v-col cols="12" md="6">
+                <div class="access-panel">
+                  <div class="access-panel__head">
+                    <div class="d-flex align-center ga-2">
+                      <v-icon color="primary" size="18">mdi-account-group-outline</v-icon>
+                      <span class="text-subtitle-2 font-weight-medium">
+                        {{ t("profile.roles") }}
+                      </span>
+                    </div>
+                    <v-chip color="primary" size="x-small" variant="flat">
+                      {{ roleList.length }}
+                    </v-chip>
+                  </div>
+                  <div v-if="roleList.length === 0" class="access-panel__empty text-medium-emphasis">
+                    {{ t("profile.noneRoles") }}
+                  </div>
+                  <div v-else class="access-panel__body scroll-elegant">
+                    <v-chip
+                      v-for="role in roleList"
+                      :key="role"
+                      class="access-chip access-chip--role"
+                      color="primary"
+                      size="small"
+                      variant="tonal"
+                    >
+                      {{ role }}
+                    </v-chip>
+                  </div>
                 </div>
-                <div v-else class="d-flex flex-wrap ga-2">
-                  <v-chip
-                    v-for="role in form.roles"
-                    :key="role"
-                    color="primary"
-                    size="small"
-                    variant="tonal"
+              </v-col>
+              <v-col cols="12" md="6">
+                <div class="access-panel">
+                  <div class="access-panel__head">
+                    <div class="d-flex align-center ga-2">
+                      <v-icon color="info" size="18">mdi-key-chain-variant</v-icon>
+                      <span class="text-subtitle-2 font-weight-medium">
+                        {{ t("profile.permissions") }}
+                      </span>
+                    </div>
+                    <v-chip color="info" size="x-small" variant="flat">
+                      {{ permissionList.length }}
+                    </v-chip>
+                  </div>
+                  <div
+                    v-if="permissionList.length === 0"
+                    class="access-panel__empty text-medium-emphasis"
                   >
-                    {{ role }}
-                  </v-chip>
+                    {{ t("profile.nonePermissions") }}
+                  </div>
+                  <div v-else class="access-panel__body scroll-elegant">
+                    <v-chip
+                      v-for="permission in permissionList"
+                      :key="permission"
+                      class="access-chip access-chip--permission"
+                      color="info"
+                      size="small"
+                      variant="tonal"
+                    >
+                      {{ permission }}
+                    </v-chip>
+                  </div>
                 </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-card class="card-ambient" rounded="xl">
-              <v-card-title>{{ t("profile.permissions") }}</v-card-title>
-              <v-card-text>
-                <div
-                  v-if="form.permissions.length === 0"
-                  class="text-medium-emphasis"
-                >
-                  {{ t("profile.nonePermissions") }}
-                </div>
-                <div v-else class="d-flex flex-wrap ga-2">
-                  <v-chip
-                    v-for="permission in form.permissions"
-                    :key="permission"
-                    color="info"
-                    size="small"
-                    variant="tonal"
-                  >
-                    {{ permission }}
-                  </v-chip>
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
+
+    <v-dialog v-model="passwordDialog" max-width="560">
+      <v-card rounded="xl">
+        <v-card-title>{{ t("profile.passwordDialogTitle") }}</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12">
+              <v-text-field
+                v-model="passwordForm.currentPassword"
+                :label="t('profile.currentPassword')"
+                autocomplete="current-password"
+                :append-inner-icon="
+                  passwordVisibility.current ? 'mdi-eye-off' : 'mdi-eye'
+                "
+                :type="passwordVisibility.current ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="
+                  passwordVisibility.current = !passwordVisibility.current
+                "
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="passwordForm.newPassword"
+                :label="t('profile.newPassword')"
+                autocomplete="new-password"
+                :append-inner-icon="
+                  passwordVisibility.next ? 'mdi-eye-off' : 'mdi-eye'
+                "
+                :type="passwordVisibility.next ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="
+                  passwordVisibility.next = !passwordVisibility.next
+                "
+              />
+              <div class="password-strength mt-1">
+                <div class="d-flex align-center justify-space-between">
+                  <span class="text-caption text-medium-emphasis">{{
+                    t("profile.passwordStrength")
+                  }}</span>
+                  <span
+                    class="text-caption font-weight-medium"
+                    :class="`text-${passwordStrengthColor}`"
+                  >
+                    {{ passwordStrengthText }}
+                  </span>
+                </div>
+                <v-progress-linear
+                  :color="passwordStrengthColor"
+                  :model-value="passwordStrengthProgress"
+                  height="6"
+                  rounded
+                />
+              </div>
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="passwordForm.confirmPassword"
+                :label="t('profile.confirmPassword')"
+                autocomplete="new-password"
+                :append-inner-icon="
+                  passwordVisibility.confirm ? 'mdi-eye-off' : 'mdi-eye'
+                "
+                :type="passwordVisibility.confirm ? 'text' : 'password'"
+                variant="outlined"
+                @click:append-inner="
+                  passwordVisibility.confirm = !passwordVisibility.confirm
+                "
+              />
+              <div
+                v-if="showPasswordMatchHint"
+                class="password-match-hint mt-1"
+                :class="`text-${passwordMatchHintColor}`"
+              >
+                {{ passwordMatchHintText }}
+              </div>
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="passwordDialog = false">{{
+            t("common.cancel")
+          }}</v-btn>
+          <v-btn
+            color="primary"
+            :loading="passwordSaving"
+            prepend-icon="mdi-lock-check"
+            @click="submitPasswordChange"
+          >
+            {{ t("profile.changePassword") }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <style scoped>
 .profile-page {
   gap: 22px;
+}
+
+.profile-side-card__body {
+  padding-top: 20px;
+}
+
+.profile-display-name {
+  line-height: 1.2;
+}
+
+.profile-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.profile-side-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-side-meta__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 76, 129, 0.05);
+}
+
+.password-strength {
+  display: grid;
+  gap: 6px;
+}
+
+.password-match-hint {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.access-grid {
+  row-gap: 12px;
+}
+
+.access-panel {
+  border: 1px solid rgba(15, 76, 129, 0.15);
+  border-radius: 12px;
+  background: rgba(15, 76, 129, 0.04);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.access-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+}
+
+.access-panel__body {
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.access-panel__empty {
+  padding: 14px 12px;
+}
+
+.access-chip {
+  border: 1px solid transparent;
+}
+
+.access-chip--role {
+  border-color: rgba(15, 76, 129, 0.22);
+}
+
+.access-chip--permission {
+  border-color: rgba(15, 147, 165, 0.3);
 }
 </style>

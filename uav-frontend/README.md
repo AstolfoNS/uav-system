@@ -17,7 +17,7 @@ This frontend only calls backend-core APIs.
 - Authentication with token persistence
 - Auto refresh token when access token expires
 - Dashboard with node and record overview
-- YOLO node management
+- Model node management
   - Create, edit, delete nodes
   - Sync node state
   - Apply parameter template
@@ -71,6 +71,6 @@ npm run preview
 
 - `/login`: Sign-in page
 - `/dashboard`: System overview
-- `/nodes`: YOLO node management
+- `/nodes`: Model node management
 - `/inference`: Image/video inference tasks
 - `/records`: Inference record management

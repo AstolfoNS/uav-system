@@ -1,6 +1,7 @@
 package com.tf.backend.core.application.infrastructure.repo;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tf.backend.core.model.dto.UserPasswordUpdateDTO;
 import com.tf.backend.core.model.dto.UserProfileUpdateDTO;
 import com.tf.backend.core.model.entity.UserEntity;
 import com.tf.backend.core.model.vo.UserProfileVO;
@@ -26,6 +27,11 @@ public interface UserService extends IService<UserEntity> {
 
     @Transactional(rollbackFor = Exception.class)
     UserProfileVO updateCurrentUserProfile(Long userId, List<String> roles, List<String> permissions, UserProfileUpdateDTO dto);
+
+    @Transactional(rollbackFor = Exception.class)
+    void updateCurrentUserPassword(Long userId, UserPasswordUpdateDTO dto);
+
+    boolean usernameExists(Long userId, String username);
 
     boolean emailExists(Long userId, String email);
 }

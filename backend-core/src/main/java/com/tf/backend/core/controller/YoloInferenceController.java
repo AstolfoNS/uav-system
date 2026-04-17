@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,6 +33,7 @@ public class YoloInferenceController {
      * 发起图像检测预测
      */
     @PostMapping("/nodes/{nodeId}/image")
+    @PreAuthorize("hasAuthority('inference:image:run')")
     @Operation(summary = "图像检测预测", description = "向指定节点发起图像检测任务")
     public R<YoloDetectionRecordEntity> predictImage(
 
@@ -61,6 +63,7 @@ public class YoloInferenceController {
      * 发起视频检测预测
      */
     @PostMapping("/nodes/{nodeId}/video")
+    @PreAuthorize("hasAuthority('inference:video:run')")
     @Operation(summary = "视频检测预测", description = "向指定节点发起视频检测任务")
     public R<YoloDetectionRecordEntity> predictVideo(
 
@@ -69,7 +72,8 @@ public class YoloInferenceController {
             Long nodeId,
 
             @Parameter(description = "视频文件", required = true)
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file")
+            MultipartFile file
 
     ) {
         log.info("Received video prediction request for node [{}] with file [{}]", nodeId, file.getOriginalFilename());
@@ -87,6 +91,7 @@ public class YoloInferenceController {
      * 分页查询检测历史记录 (供前端大屏或表格展示)
      */
     @GetMapping("/records/page")
+    @PreAuthorize("hasAuthority('inference:record:page')")
     @Operation(summary = "分页查询检测历史记录", description = "供前端大屏或表格展示")
     public R<IPage<YoloDetectionRecordEntity>> getRecordPage(
 
@@ -121,6 +126,7 @@ public class YoloInferenceController {
      * 获取单条预测记录的详细信息
      */
     @GetMapping("/records/{id}")
+    @PreAuthorize("hasAuthority('inference:record:detail')")
     @Operation(summary = "获取单条预测记录及详细信息", description = "通过ID查询")
     public R<YoloDetectionRecordEntity> getRecordDetail(
 
@@ -142,6 +148,7 @@ public class YoloInferenceController {
      * 删除指定的预测记录 (支持清理历史)
      */
     @DeleteMapping("/records/{id}")
+    @PreAuthorize("hasAuthority('inference:record:delete')")
     @Operation(summary = "删除指定的预测记录", description = "删除单条检测历史支持清理历史")
     public R<Void> deleteRecord(
 

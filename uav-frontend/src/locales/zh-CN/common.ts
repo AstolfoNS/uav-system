@@ -11,6 +11,8 @@ const common = {
   copy: "复制",
   copied: "已复制",
   copyFailed: "复制失败",
+  refresh: "刷新",
+  active: "激活",
   showAll: "展开全部",
   showLess: "收起",
   loading: "加载中...",

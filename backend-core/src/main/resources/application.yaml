@@ -10,8 +10,8 @@ spring:
     active: dev
   servlet:
     multipart:
-      max-file-size: 2048MB
-      max-request-size: 2050MB
+      max-file-size: 512MB
+      max-request-size: 600MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://192.168.14.129:3306/uav_system?characterEncoding=utf-8&serverTimeZone=Asia/Shanghai

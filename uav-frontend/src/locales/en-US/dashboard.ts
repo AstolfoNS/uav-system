@@ -3,7 +3,7 @@ const dashboard = {
   online: "Online",
   exception: "Exception",
   records: "Detection Records",
-  nodesDesc: "Registered YOLO service endpoints",
+  nodesDesc: "Registered model service endpoints",
   onlineDesc: "Healthy nodes currently reachable",
   exceptionDesc: "Nodes with abnormal runtime status",
   recordsDesc: "Cumulative inference records",

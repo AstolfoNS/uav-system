@@ -3,7 +3,7 @@ const dashboard = {
   online: "在线数",
   exception: "异常数",
   records: "检测记录",
-  nodesDesc: "已注册的 YOLO 服务端点",
+  nodesDesc: "已注册的模型服务端点",
   onlineDesc: "当前可用的健康节点",
   exceptionDesc: "运行状态异常的节点数量",
   recordsDesc: "累计推理记录数",

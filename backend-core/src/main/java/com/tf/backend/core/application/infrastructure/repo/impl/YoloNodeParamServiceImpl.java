@@ -8,6 +8,7 @@ import com.tf.backend.core.application.mapper.YoloNodeParamMapper;
 import com.tf.backend.core.model.entity.YoloNodeParamEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -16,6 +17,25 @@ public class YoloNodeParamServiceImpl extends ServiceImpl<YoloNodeParamMapper, Y
     @Override
     public void removeByNodeId(Long nodeId) {
         this.remove(Wrappers.<YoloNodeParamEntity>lambdaQuery().eq(YoloNodeParamEntity::getNodeId, nodeId));
+    }
+
+    @Override
+    public void removeByNodeIdAndTemplateName(Long nodeId, String templateName) {
+        this.remove(
+                Wrappers.<YoloNodeParamEntity>lambdaQuery()
+                        .eq(YoloNodeParamEntity::getNodeId, nodeId)
+                        .eq(YoloNodeParamEntity::getTemplateName, templateName)
+        );
+    }
+
+    @Override
+    public List<YoloNodeParamEntity> listByNodeId(Long nodeId) {
+        return this.list(
+                Wrappers.<YoloNodeParamEntity>lambdaQuery()
+                        .eq(YoloNodeParamEntity::getNodeId, nodeId)
+                        .orderByDesc(YoloNodeParamEntity::getIsActive)
+                        .orderByDesc(YoloNodeParamEntity::getUpdatedAt)
+        );
     }
 
     @Override

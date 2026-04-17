@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +21,7 @@ public class SysFileController {
 
 
     @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('file:upload:common')")
     @Operation(summary = "通用文件上传", description = "无严格校验，可指定分类目录")
     public R<String> uploadFile(
 
@@ -37,6 +39,7 @@ public class SysFileController {
 
 
     @PostMapping("/upload/avatar")
+    @PreAuthorize("hasAuthority('file:upload:avatar')")
     @Operation(summary = "上传用户头像", description = "严格校验图片格式(JPG/PNG)和大小(最大2MB)")
     public R<String> uploadAvatar(
 

@@ -61,6 +61,7 @@ from .block import (
     TorchVision,
 )
 from .conv import (
+    PConv,
     CBAM,
     ChannelAttention,
     Concat,
@@ -187,4 +188,5 @@ __all__ = (
     "YOLOESegment",
     "YOLOESegment26",
     "v10Detect",
+    "PConv",
 )

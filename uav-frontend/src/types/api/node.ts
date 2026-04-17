@@ -13,3 +13,16 @@ export interface YoloNodeUpsertRequest {
   httpProtocol?: string;
   apiVersion?: string;
 }
+
+export interface YoloNodeParamCreateRequest {
+  templateName: string;
+  description?: string;
+  params: Record<string, unknown>;
+  isActive?: boolean;
+}
+
+export interface YoloNodeParamUpdateRequest {
+  description?: string;
+  params?: Record<string, unknown>;
+  isActive?: boolean;
+}

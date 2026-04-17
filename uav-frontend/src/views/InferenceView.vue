@@ -27,6 +27,13 @@ const imageFlowHighlighted = ref(false);
 const videoFlowHighlighted = ref(false);
 const showAllImageDetails = ref(false);
 const showAllVideoDetails = ref(false);
+const previewDialog = ref(false);
+const previewKind = ref<"image" | "video">("image");
+const previewSrc = ref("");
+
+type VideoZoomTriggerMode = "click" | "button";
+// click: 直接点击视频区域放大；button: 仅按钮放大并保留 controls 交互。
+const videoZoomTriggerMode = ref<VideoZoomTriggerMode>("click");
 
 const IMAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const VIDEO_MAX_SIZE_BYTES = 200 * 1024 * 1024;
@@ -225,14 +232,59 @@ function pickMediaUrl(
   return "";
 }
 
+function imageResultPreviewUrl(): string {
+  return pickMediaUrl(imageResult.value, [
+    "resultUrl",
+    "result_url",
+    "imageUrl",
+    "image_url",
+    "resultImageUrl",
+    "renderedImageUrl",
+  ]);
+}
+
+function videoResultPreviewUrl(): string {
+  return pickMediaUrl(videoResult.value, [
+    "resultUrl",
+    "result_url",
+    "videoUrl",
+    "video_url",
+    "resultVideoUrl",
+    "renderedVideoUrl",
+  ]);
+}
+
+function openMediaPreview(kind: "image" | "video", src: string): void {
+  const normalized = src.trim();
+  if (!normalized) {
+    return;
+  }
+
+  previewKind.value = kind;
+  previewSrc.value = normalized;
+  previewDialog.value = true;
+}
+
+function closeMediaPreview(): void {
+  previewDialog.value = false;
+}
+
 function asText(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return t("common.unavailable");
   }
   if (typeof value === "object") {
-    return JSON.stringify(value);
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
   }
   return String(value);
+}
+
+function isStructuredJsonValue(value: string): boolean {
+  return value.startsWith("{\n") || value.startsWith("[\n");
 }
 
 function typeLabel(taskType: unknown): string {
@@ -502,17 +554,6 @@ onBeforeUnmount(() => {
                       variant="outlined"
                       @update:model-value="onImageSelected"
                     />
-                    <v-btn
-                      class="btn-primary-action run-btn"
-                      block
-                      color="primary"
-                      :loading="imageLoading"
-                      :disabled="
-                        !selectedNodeId || !imageFile || !canSubmitImage
-                      "
-                      @click="submitImage"
-                      >{{ t("inference.runImage") }}</v-btn
-                    >
 
                     <v-row class="preview-grid mt-4">
                       <v-col cols="12" md="5">
@@ -529,10 +570,24 @@ onBeforeUnmount(() => {
                           <v-card-text class="preview-box-content">
                             <v-img
                               v-if="imageInputPreviewUrl"
-                              class="result-media"
+                              class="result-media preview-clickable"
                               :src="imageInputPreviewUrl"
                               cover
                               rounded="xl"
+                              @click="
+                                openMediaPreview('image', imageInputPreviewUrl)
+                              "
+                            />
+                            <v-btn
+                              v-if="imageInputPreviewUrl"
+                              class="preview-zoom-btn"
+                              color="primary"
+                              icon="mdi-magnify-plus-outline"
+                              size="small"
+                              variant="flat"
+                              @click.stop="
+                                openMediaPreview('image', imageInputPreviewUrl)
+                              "
                             />
                             <div
                               v-else
@@ -564,6 +619,18 @@ onBeforeUnmount(() => {
                             {{ t("common.apply") }}
                           </div>
                         </div>
+                        <div class="run-btn-wrap run-btn-wrap--flow">
+                          <v-btn
+                            class="btn-primary-action run-btn"
+                            color="primary"
+                            :loading="imageLoading"
+                            :disabled="
+                              !selectedNodeId || !imageFile || !canSubmitImage
+                            "
+                            @click="submitImage"
+                            >{{ t("inference.runImage") }}</v-btn
+                          >
+                        </div>
                       </v-col>
 
                       <v-col cols="12" md="5">
@@ -579,30 +646,31 @@ onBeforeUnmount(() => {
                           </v-card-title>
                           <v-card-text class="preview-box-content">
                             <v-img
-                              v-if="
-                                imageResult &&
-                                pickMediaUrl(imageResult, [
-                                  'resultUrl',
-                                  'result_url',
-                                  'imageUrl',
-                                  'image_url',
-                                  'resultImageUrl',
-                                  'renderedImageUrl',
-                                ])
-                              "
-                              class="result-media"
-                              :src="
-                                pickMediaUrl(imageResult, [
-                                  'resultUrl',
-                                  'result_url',
-                                  'imageUrl',
-                                  'image_url',
-                                  'resultImageUrl',
-                                  'renderedImageUrl',
-                                ])
-                              "
+                              v-if="imageResult && imageResultPreviewUrl()"
+                              class="result-media preview-clickable"
+                              :src="imageResultPreviewUrl()"
                               cover
                               rounded="xl"
+                              @click="
+                                openMediaPreview(
+                                  'image',
+                                  imageResultPreviewUrl(),
+                                )
+                              "
+                            />
+                            <v-btn
+                              v-if="imageResult && imageResultPreviewUrl()"
+                              class="preview-zoom-btn"
+                              color="primary"
+                              icon="mdi-magnify-plus-outline"
+                              size="small"
+                              variant="flat"
+                              @click.stop="
+                                openMediaPreview(
+                                  'image',
+                                  imageResultPreviewUrl(),
+                                )
+                              "
                             />
                             <div
                               v-else
@@ -670,7 +738,13 @@ onBeforeUnmount(() => {
                                     >
                                       {{ row.label }}
                                     </div>
-                                    <div class="text-body-2">
+                                    <div
+                                      class="text-body-2 detail-value"
+                                      :class="{
+                                        'detail-value--json':
+                                          isStructuredJsonValue(row.value),
+                                      }"
+                                    >
                                       {{ row.value }}
                                     </div>
                                   </v-col>
@@ -740,7 +814,13 @@ onBeforeUnmount(() => {
                                     >
                                       {{ row.key }}
                                     </div>
-                                    <div class="text-body-2">
+                                    <div
+                                      class="text-body-2 detail-value"
+                                      :class="{
+                                        'detail-value--json':
+                                          isStructuredJsonValue(row.value),
+                                      }"
+                                    >
                                       {{ row.value }}
                                     </div>
                                   </v-col>
@@ -784,17 +864,6 @@ onBeforeUnmount(() => {
                       variant="outlined"
                       @update:model-value="onVideoSelected"
                     />
-                    <v-btn
-                      class="btn-primary-action run-btn"
-                      block
-                      color="primary"
-                      :loading="videoLoading"
-                      :disabled="
-                        !selectedNodeId || !videoFile || !canSubmitVideo
-                      "
-                      @click="submitVideo"
-                      >{{ t("inference.runVideo") }}</v-btn
-                    >
 
                     <v-row class="preview-grid mt-4">
                       <v-col cols="12" md="5">
@@ -812,10 +881,29 @@ onBeforeUnmount(() => {
                             <video
                               v-if="videoInputPreviewUrl"
                               class="result-media"
-                              controls
+                              :class="{
+                                'preview-clickable':
+                                  videoZoomTriggerMode === 'click',
+                              }"
+                              :controls="videoZoomTriggerMode === 'button'"
+                              @click="
+                                videoZoomTriggerMode === 'click' &&
+                                openMediaPreview('video', videoInputPreviewUrl)
+                              "
                             >
                               <source :src="videoInputPreviewUrl" />
                             </video>
+                            <v-btn
+                              v-if="videoInputPreviewUrl"
+                              class="preview-zoom-btn"
+                              color="primary"
+                              icon="mdi-magnify-plus-outline"
+                              size="small"
+                              variant="flat"
+                              @click.stop="
+                                openMediaPreview('video', videoInputPreviewUrl)
+                              "
+                            />
                             <div
                               v-else
                               class="preview-placeholder text-medium-emphasis"
@@ -846,6 +934,18 @@ onBeforeUnmount(() => {
                             {{ t("common.apply") }}
                           </div>
                         </div>
+                        <div class="run-btn-wrap run-btn-wrap--flow">
+                          <v-btn
+                            class="btn-primary-action run-btn"
+                            color="primary"
+                            :loading="videoLoading"
+                            :disabled="
+                              !selectedNodeId || !videoFile || !canSubmitVideo
+                            "
+                            @click="submitVideo"
+                            >{{ t("inference.runVideo") }}</v-btn
+                          >
+                        </div>
                       </v-col>
 
                       <v-col cols="12" md="5">
@@ -861,33 +961,37 @@ onBeforeUnmount(() => {
                           </v-card-title>
                           <v-card-text class="preview-box-content">
                             <video
-                              v-if="
-                                videoResult &&
-                                pickMediaUrl(videoResult, [
-                                  'resultUrl',
-                                  'result_url',
-                                  'videoUrl',
-                                  'video_url',
-                                  'resultVideoUrl',
-                                  'renderedVideoUrl',
-                                ])
-                              "
+                              v-if="videoResult && videoResultPreviewUrl()"
                               class="result-media"
-                              controls
+                              :class="{
+                                'preview-clickable':
+                                  videoZoomTriggerMode === 'click',
+                              }"
+                              :controls="videoZoomTriggerMode === 'button'"
+                              @click="
+                                videoZoomTriggerMode === 'click' &&
+                                openMediaPreview(
+                                  'video',
+                                  videoResultPreviewUrl(),
+                                )
+                              "
                             >
-                              <source
-                                :src="
-                                  pickMediaUrl(videoResult, [
-                                    'resultUrl',
-                                    'result_url',
-                                    'videoUrl',
-                                    'video_url',
-                                    'resultVideoUrl',
-                                    'renderedVideoUrl',
-                                  ])
-                                "
-                              />
+                              <source :src="videoResultPreviewUrl()" />
                             </video>
+                            <v-btn
+                              v-if="videoResult && videoResultPreviewUrl()"
+                              class="preview-zoom-btn"
+                              color="primary"
+                              icon="mdi-magnify-plus-outline"
+                              size="small"
+                              variant="flat"
+                              @click.stop="
+                                openMediaPreview(
+                                  'video',
+                                  videoResultPreviewUrl(),
+                                )
+                              "
+                            />
                             <div
                               v-else
                               class="preview-placeholder text-medium-emphasis"
@@ -954,7 +1058,13 @@ onBeforeUnmount(() => {
                                     >
                                       {{ row.label }}
                                     </div>
-                                    <div class="text-body-2">
+                                    <div
+                                      class="text-body-2 detail-value"
+                                      :class="{
+                                        'detail-value--json':
+                                          isStructuredJsonValue(row.value),
+                                      }"
+                                    >
                                       {{ row.value }}
                                     </div>
                                   </v-col>
@@ -1024,7 +1134,13 @@ onBeforeUnmount(() => {
                                     >
                                       {{ row.key }}
                                     </div>
-                                    <div class="text-body-2">
+                                    <div
+                                      class="text-body-2 detail-value"
+                                      :class="{
+                                        'detail-value--json':
+                                          isStructuredJsonValue(row.value),
+                                      }"
+                                    >
                                       {{ row.value }}
                                     </div>
                                   </v-col>
@@ -1049,6 +1165,25 @@ onBeforeUnmount(() => {
         </v-card>
       </v-col>
     </v-row>
+
+    <v-dialog v-model="previewDialog" max-width="1200">
+      <v-card class="preview-dialog-card" rounded="xl">
+        <v-card-actions class="justify-end">
+          <v-btn icon="mdi-close" variant="text" @click="closeMediaPreview" />
+        </v-card-actions>
+        <v-card-text class="preview-dialog-body">
+          <v-img
+            v-if="previewKind === 'image'"
+            class="preview-dialog-image"
+            :src="previewSrc"
+            contain
+          />
+          <video v-else class="preview-dialog-video" controls autoplay>
+            <source :src="previewSrc" />
+          </video>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -1077,8 +1212,10 @@ onBeforeUnmount(() => {
 
 .preview-flow-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
 }
 
 .preview-flow {
@@ -1140,7 +1277,20 @@ onBeforeUnmount(() => {
 }
 
 .preview-box-content {
+  position: relative;
   padding-top: 18px;
+}
+
+.preview-clickable {
+  cursor: zoom-in;
+}
+
+.preview-zoom-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  box-shadow: 0 6px 12px rgba(var(--uav-primary-rgb), 0.28);
 }
 
 .preview-placeholder {
@@ -1167,8 +1317,23 @@ onBeforeUnmount(() => {
   margin-bottom: 4px;
 }
 
+.run-btn-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.run-btn-wrap--flow {
+  justify-content: center;
+  width: 100%;
+}
+
 .run-btn {
   margin-top: 8px;
+}
+
+.run-btn-wrap--flow .run-btn {
+  margin-top: 0;
+  min-width: 126px;
 }
 
 .result-zone {
@@ -1221,6 +1386,41 @@ onBeforeUnmount(() => {
   padding: 24px 28px 28px;
 }
 
+.preview-dialog-card {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(238, 248, 255, 0.96)
+  );
+}
+
+.preview-dialog-body {
+  padding-top: 0;
+}
+
+.preview-dialog-image,
+.preview-dialog-video {
+  width: 100%;
+  max-height: 78vh;
+  border-radius: 12px;
+  background: rgba(8, 26, 38, 0.82);
+
+  .detail-value {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .detail-value--json {
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(21, 58, 73, 0.08);
+    border: 1px solid rgba(31, 122, 140, 0.2);
+  }
+}
+
 @media (max-width: 960px) {
   .task-panel {
     padding: 20px 18px 22px;
@@ -1255,6 +1455,18 @@ onBeforeUnmount(() => {
 
   .preview-flow-icon--mobile {
     display: inline-flex;
+  }
+
+  .run-btn-wrap {
+    justify-content: stretch;
+  }
+
+  .run-btn {
+    width: 100%;
+  }
+
+  .run-btn-wrap--flow .run-btn {
+    width: auto;
   }
 }
 </style>

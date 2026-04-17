@@ -6,6 +6,7 @@ import inference from "./inference";
 import login from "./login";
 import node from "./node";
 import profile from "./profile";
+import rbac from "./rbac";
 import records from "./records";
 
 // Key prefix convention:
@@ -17,6 +18,7 @@ import records from "./records";
 // - login.* from login.ts
 // - node.* from node.ts
 // - profile.* from profile.ts
+// - rbac.* from rbac.ts
 // - records.* from records.ts
 const zhCN = {
   app,
@@ -27,6 +29,7 @@ const zhCN = {
   login,
   node,
   profile,
+  rbac,
   records,
 };
 

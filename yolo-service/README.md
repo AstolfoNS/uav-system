@@ -7,6 +7,7 @@
 ## 核心特性
 
 - **高性能推理**：集成并支持最新的 ultralytics YOLO 模型架构（支持自训练模型权重）。
+- **多权重格式**：支持 `.pt`、`.onnx` 两种模型权重格式（按运行环境依赖自动校验）。
 - **全格式支持**：支持单张图片识别及常见视频格式（`.mp4`, `.avi`, `.mov`, `.mkv`）的异步检测。
 - **文件存储规范化**：采用基于 UUID 的无碰撞文件存储策略，物理隔离上传的临时源文件与渲染后的输出媒体。
 - **自动挂载与服务**：FastAPI 内置的静态文件拦截机制自动暴露图片和转码后的视频物理存放路径映射。
@@ -82,6 +83,27 @@ MODEL_WEIGHTS_PATH="weights/yolo26n.pt"
 # 目录配置
 UPLOAD_DIR="data/temp_uploads"
 OUTPUT_DIR="data/outputs"
+```
+
+可选示例：
+
+```ini
+MODEL_WEIGHTS_PATH="weights/sky-scan-det_640_fp16.onnx"
+```
+
+### 2.1 权重格式依赖说明
+
+- `.pt`：默认依赖即可运行。
+- `.onnx`：需安装 `onnx` 与 `onnxruntime`（本项目已在依赖中声明）。
+
+推荐安装方式（Windows/Linux 通用）：
+
+```powershell
+# 基础（.pt + .onnx）
+uv sync
+
+# 可选：ONNX GPU 推理
+uv sync --extra local-gpu
 ```
 
 ### 3. 启动服务
