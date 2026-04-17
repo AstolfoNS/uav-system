@@ -6,6 +6,9 @@ import com.tf.backend.core.application.infrastructure.repo.YoloDetectionRecordSe
 import com.tf.backend.core.common.enumeration.Status;
 import com.tf.backend.core.common.response.R;
 import com.tf.backend.core.model.entity.YoloDetectionRecordEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/inference")
+@Tag(name = "推理模块", description = "YOLO目标检测推理接口")
 public class YoloInferenceController {
 
     private final YoloInferenceService yoloInferenceService;
@@ -28,7 +32,18 @@ public class YoloInferenceController {
      * 发起图像检测预测
      */
     @PostMapping("/nodes/{nodeId}/image")
-    public R<YoloDetectionRecordEntity> predictImage(@PathVariable Long nodeId, @RequestParam("file") MultipartFile file) {
+    @Operation(summary = "图像检测预测", description = "向指定节点发起图像检测任务")
+    public R<YoloDetectionRecordEntity> predictImage(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long nodeId,
+
+            @Parameter(description = "图片文件", required = true)
+            @RequestParam("file")
+            MultipartFile file
+
+    ) {
         log.info("Received image prediction request for node [{}] with file [{}]", nodeId, file.getOriginalFilename());
         
         // 调用业务服务，它会同步阻塞等待 FastAPI 返回，并完成落库
@@ -46,7 +61,17 @@ public class YoloInferenceController {
      * 发起视频检测预测
      */
     @PostMapping("/nodes/{nodeId}/video")
-    public R<YoloDetectionRecordEntity> predictVideo(@PathVariable Long nodeId, @RequestParam("file") MultipartFile file) {
+    @Operation(summary = "视频检测预测", description = "向指定节点发起视频检测任务")
+    public R<YoloDetectionRecordEntity> predictVideo(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long nodeId,
+
+            @Parameter(description = "视频文件", required = true)
+            @RequestParam("file") MultipartFile file
+
+    ) {
         log.info("Received video prediction request for node [{}] with file [{}]", nodeId, file.getOriginalFilename());
 
         YoloDetectionRecordEntity record = yoloInferenceService.predictVideo(nodeId, file);
@@ -58,21 +83,36 @@ public class YoloInferenceController {
         return R.ok(record, "视频检测及渲染已完成");
     }
 
-
-    // ================= 2. 预测历史记录查询接口 =================
-
     /**
      * 分页查询检测历史记录 (供前端大屏或表格展示)
      */
     @GetMapping("/records/page")
+    @Operation(summary = "分页查询检测历史记录", description = "供前端大屏或表格展示")
     public R<IPage<YoloDetectionRecordEntity>> getRecordPage(
-            @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) Long nodeId,
-            @RequestParam(required = false) Integer taskType,
-            @RequestParam(required = false) String originalFilename
+
+            @Parameter(description = "当前页码")
+            @RequestParam(defaultValue = "1")
+            Integer current,
+
+            @Parameter(description = "每页展示数量")
+            @RequestParam(defaultValue = "10")
+            Integer size,
+
+            @Parameter(description = "节点ID过滤")
+            @RequestParam(required = false)
+            Long nodeId,
+
+            @Parameter(description = "任务类型过滤")
+            @RequestParam(required = false)
+            Integer taskType,
+
+            @Parameter(description = "原始文件名过滤")
+            @RequestParam(required = false)
+            String originalFilename
+
     ) {
-        IPage<YoloDetectionRecordEntity> pageRecords = yoloDetectionRecordService.getRecordPage(current, size, nodeId, taskType, originalFilename);
+        IPage<YoloDetectionRecordEntity> pageRecords =
+                yoloDetectionRecordService.getRecordPage(current, size, nodeId, taskType, originalFilename);
 
         return R.ok(pageRecords);
     }
@@ -81,7 +121,14 @@ public class YoloInferenceController {
      * 获取单条预测记录的详细信息
      */
     @GetMapping("/records/{id}")
-    public R<YoloDetectionRecordEntity> getRecordDetail(@PathVariable Long id) {
+    @Operation(summary = "获取单条预测记录及详细信息", description = "通过ID查询")
+    public R<YoloDetectionRecordEntity> getRecordDetail(
+
+            @Parameter(description = "记录ID", required = true)
+            @PathVariable
+            Long id
+
+    ) {
         YoloDetectionRecordEntity record = yoloDetectionRecordService.getById(id);
 
         if (record == null) {
@@ -95,9 +142,18 @@ public class YoloInferenceController {
      * 删除指定的预测记录 (支持清理历史)
      */
     @DeleteMapping("/records/{id}")
-    public R<Void> deleteRecord(@PathVariable Long id) {
+    @Operation(summary = "删除指定的预测记录", description = "删除单条检测历史支持清理历史")
+    public R<Void> deleteRecord(
+
+            @Parameter(description = "记录ID", required = true)
+            @PathVariable
+            Long id
+
+    ) {
         yoloDetectionRecordService.removeById(id);
 
         return R.okWithMsg("记录删除成功");
     }
+
+
 }

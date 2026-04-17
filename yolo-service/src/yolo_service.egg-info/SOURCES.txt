@@ -17,7 +17,8 @@ src/yoloservice/app/component/logging.py
 src/yoloservice/app/component/middleware.py
 src/yoloservice/app/component/route.py
 src/yoloservice/common/__init__.py
-src/yoloservice/common/minio_client.py
+src/yoloservice/common/connect/__init__.py
+src/yoloservice/common/connect/minio_client.py
 src/yoloservice/common/schema/__init__.py
 src/yoloservice/common/schema/response.py
 src/yoloservice/common/utils/file_utils.py
@@ -28,7 +29,11 @@ src/yoloservice/config/log/logging_settings.py
 src/yoloservice/core/__init__.py
 src/yoloservice/core/detector.py
 src/yoloservice/service/inference_service.py
+src/yoloservice/service/weight_service.py
 src/yoloservice/web/__init__.py
 src/yoloservice/web/router/__init__.py
+src/yoloservice/web/router/health_router.py
 src/yoloservice/web/router/image_router.py
+src/yoloservice/web/router/param_router.py
 src/yoloservice/web/router/video_router.py
+src/yoloservice/web/router/weight_router.py

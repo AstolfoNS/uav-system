@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -13,17 +14,22 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Builder
 @Data
+@Schema(description = "统一响应结果封装")
 public class R<T> implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
+    @Schema(description = "状态码")
     private int code;
 
+    @Schema(description = "提示信息")
     private String msg;
 
+    @Schema(description = "业务数据")
     private T data;
 
+    @Schema(description = "错误详情(如果有)")
     private Object details;
 
     // ==========================

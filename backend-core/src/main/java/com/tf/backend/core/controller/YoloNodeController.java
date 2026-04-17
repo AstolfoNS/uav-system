@@ -9,6 +9,9 @@ import com.tf.backend.core.application.infrastructure.repo.YoloNodeService;
 import com.tf.backend.core.model.dto.YoloNodeSaveDTO;
 import com.tf.backend.core.model.vo.YoloNodeDetailVO;
 import com.tf.backend.core.model.vo.YoloNodeVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/yolo-nodes")
 @RequiredArgsConstructor
+@Tag(name = "YOLO节点模块", description = "YOLO节点的增删改查、参数同步及权重管理")
 public class YoloNodeController {
 
     private final YoloNodeService yoloNodeService;
@@ -32,25 +36,52 @@ public class YoloNodeController {
 
     private final YoloNodeClientService yoloNodeClientService;
 
-    // ================= 基础信息管理 (本地数据库 CRUD) =================
 
     @GetMapping("/page")
+    @Operation(summary = "分页查询YOLO节点", description = "支持条件过滤")
     public R<IPage<YoloNodeVO>> getPageList(
-            @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String nodeName,
-            @RequestParam(required = false) Integer status
+
+            @Parameter(description = "当前页码")
+            @RequestParam(defaultValue = "1")
+            Integer current,
+
+            @Parameter(description = "每页展示数量")
+            @RequestParam(defaultValue = "10")
+            Integer size,
+
+            @Parameter(description = "节点名称过滤")
+            @RequestParam(required = false)
+            String nodeName,
+
+            @Parameter(description = "状态过滤")
+            @RequestParam(required = false)
+            Integer status
     ) {
         return R.ok(yoloNodeService.getPageList(current, size, nodeName, status));
     }
 
+
     @GetMapping("/{id}")
-    public R<YoloNodeDetailVO> getNodeDetail(@PathVariable Long id) {
+    @Operation(summary = "获取节点详情", description = "根据ID获取某个节点的所有详细信息")
+    public R<YoloNodeDetailVO> getNodeDetail(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id
+    ) {
         return R.ok(yoloNodeService.getNodeDetail(id));
     }
 
+
     @PostMapping
-    public R<Void> addNode(@Valid @RequestBody YoloNodeSaveDTO dto) {
+    @Operation(summary = "添加新节点", description = "创建新节点并尝试连接同步")
+    public R<Void> addNode(
+
+            @Parameter(description = "节点信息DTO", required = true)
+            @Valid
+            @RequestBody
+            YoloNodeSaveDTO dto
+    ) {
         log.info("Request to add new YOLO node: {}", dto.nodeName());
 
         yoloNodeManageService.addNode(dto);
@@ -58,15 +89,36 @@ public class YoloNodeController {
         return R.okWithMsg("节点添加成功，后台正在尝试连接同步...");
     }
 
+
     @PutMapping("/{id}")
-    public R<Void> updateNode(@PathVariable Long id, @Valid @RequestBody YoloNodeSaveDTO dto) {
+    @Operation(summary = "更新节点信息", description = "根据ID更新已存在的节点")
+    public R<Void> updateNode(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id,
+
+            @Parameter(description = "节点信息DTO", required = true)
+            @Valid
+            @RequestBody
+            YoloNodeSaveDTO dto
+    ) {
         log.info("Request to update YOLO node ID: {}", id);
+
         yoloNodeManageService.updateNode(id, dto);
+
         return R.okWithMsg("节点信息更新成功");
     }
 
+
     @DeleteMapping("/{id}")
-    public R<Void> deleteNode(@PathVariable Long id) {
+    @Operation(summary = "删除节点", description = "级联删除某个节点的所有相关信息")
+    public R<Void> deleteNode(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id
+    ) {
         log.info("Request to delete YOLO node ID: {}", id);
 
         yoloNodeService.deleteNodeWithCascades(id);
@@ -74,13 +126,22 @@ public class YoloNodeController {
         return R.okWithMsg("节点及其关联数据删除成功");
     }
 
-    // ================= 参数模板与状态同步 (高阶编排指令) =================
-
     /**
      * 一键切换并应用参数模板
      */
     @PutMapping("/{id}/params/template/{templateName}/apply")
-    public R<Void> applyParamTemplate(@PathVariable Long id, @PathVariable String templateName) {
+    @Operation(summary = "应用参数模板", description = "一键切换并应用特定的检测参数模板下发到特定物理节点")
+    public R<Void> applyParamTemplate(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id,
+
+            @Parameter(description = "模板名称", required = true)
+            @PathVariable
+            String templateName
+
+    ) {
         log.info("Applying template [{}] to node ID: {}", templateName, id);
 
         yoloNodeManageService.applyParamTemplate(id, templateName);
@@ -92,7 +153,14 @@ public class YoloNodeController {
      * 手动触发节点状态全量同步 (防漂移)
      */
     @PostMapping("/{id}/sync")
-    public R<Void> manualSyncNodeState(@PathVariable Long id) {
+    @Operation(summary = "手动全量同步节点", description = "强制从YOLO服务拉取全量参数并覆写数据库防止漂移")
+    public R<Void> manualSyncNodeState(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id
+
+    ) {
         log.info("Manual sync triggered for node ID: {}", id);
 
         yoloNodeSyncService.syncNodeState(id);
@@ -100,10 +168,20 @@ public class YoloNodeController {
         return R.okWithMsg("节点状态同步成功");
     }
 
-    // ================= 模型权重物理管理 (物理机直接交互) =================
 
     @PostMapping("/{id}/weights")
-    public R<Void> uploadWeight(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+    @Operation(summary = "上传模型权重", description = "直接通过该控制层向YOLO节点物理上传.pt文件")
+    public R<Void> uploadWeight(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id,
+
+            @Parameter(description = "模型权重文件(.pt)", required = true)
+            @RequestParam("file")
+            MultipartFile file
+
+    ) {
         log.info("Uploading weight {} to node ID: {}", file.getOriginalFilename(), id);
 
         yoloNodeClientService.uploadWeight(yoloNodeService.getBaseUrlById(id), file);
@@ -113,8 +191,20 @@ public class YoloNodeController {
         return R.okWithMsg("模型权重上传成功");
     }
 
+
     @PutMapping("/{id}/weights/{filename}/active")
-    public R<Void> changeActiveWeight(@PathVariable Long id, @PathVariable String filename) {
+    @Operation(summary = "切换活跃模型", description = "切换指定的YOLO节点目前在使用的权重文件")
+    public R<Void> changeActiveWeight(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id,
+
+            @Parameter(description = "权重文件名", required = true)
+            @PathVariable
+            String filename
+
+    ) {
         log.info("Changing active weight for node ID: {} to {}", id, filename);
 
         yoloNodeClientService.changeActiveWeight(yoloNodeService.getBaseUrlById(id), filename);
@@ -123,8 +213,20 @@ public class YoloNodeController {
         return R.okWithMsg("活跃模型切换成功");
     }
 
+
     @DeleteMapping("/{id}/weights/{filename}")
-    public R<Void> deleteWeight(@PathVariable Long id, @PathVariable String filename) {
+    @Operation(summary = "删除模型权重", description = "将模型文件从物理机器上删除")
+    public R<Void> deleteWeight(
+
+            @Parameter(description = "节点ID", required = true)
+            @PathVariable
+            Long id,
+
+            @Parameter(description = "权重文件名", required = true)
+            @PathVariable
+            String filename
+
+    ) {
         log.info("Deleting weight {} from node ID: {}", filename, id);
 
         yoloNodeClientService.deleteWeight(yoloNodeService.getBaseUrlById(id), filename);
@@ -132,4 +234,6 @@ public class YoloNodeController {
 
         return R.okWithMsg("模型权重删除成功");
     }
+
+
 }

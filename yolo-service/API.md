@@ -1,24 +1,78 @@
-# UAV Detection Service — API 接口文档
+# UAV Detection Service API 文档
 
-**基础路径 (Base URL):** `http://<服务器IP>:<端口>/api/v1`
-**当前项目版本:** `1.0.0`
+本文档对应 `yolo-service`（FastAPI）当前实现。
 
-本文档包含了当前项目中所有的 RESTful API 接口，用于图像/视频推理预测、模型权重管理与预测参数的动态配置。
+## 1. 基础信息
 
----
+- 服务默认地址: `http://<host>:8000`
+- 业务接口前缀: `/api/v1`
+- 业务接口完整前缀: `http://<host>:8000/api/v1`
+- OpenAPI: `/openapi.json`
+- Swagger UI: `/docs`
+- 路由浏览页（自定义首页）: `/`
 
-## 1. 业务功能: 核心目标检测 (Inference)
+## 2. 响应结构说明
 
-### 1.1 图像预测
-**接口：** `POST /image/predict`
-**描述：** 上传单张图片进行目标检测（UAV）。模型会识别图片中的对象，并将渲染好的带有边界框和置信度的生成图上传至 MinIO，并返回远程 URL 和解析结果。
-**Content-Type:** `multipart/form-data`
+当前服务存在两套成功响应风格（与代码一致）：
 
-| 字段名称 | 类型 | 必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `file` | file | 是 | 需要预测识别的图像文件（例如 .jpg, .png）。 |
+### 2.1 Inference 接口（image/video）
 
-**响应成功示例:**
+返回统一 `R` 结构，字段为 `code/msg/data`。
+
+```json
+{
+  "code": 200,
+  "msg": "图像识别成功",
+  "data": {}
+}
+```
+
+### 2.2 Weights/Params 接口
+
+成功响应中使用 `message` 字段（不是 `msg`），例如：
+
+```json
+{
+  "code": 200,
+  "message": "获取成功",
+  "data": {}
+}
+```
+
+### 2.3 错误响应
+
+- `image/video` 路由内部返回 `R.fail(...)`，通常是 `code/msg/data`。
+- `weights/params` 多通过 `HTTPException` 抛错，再由中间件包装成 `code/msg/data`，并带对应 HTTP 状态码。
+- 参数校验失败由中间件统一返回 `422`，结构为 `code/msg/data`。
+
+## 3. 健康检查
+
+### 3.1 探活接口
+
+- Method: `GET`
+- URL: `/api/v1/health`
+- Auth: 否
+- 返回示例:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+## 4. 推理接口（Inference）
+
+### 4.1 图像预测
+
+- Method: `POST`
+- URL: `/api/v1/image/predict`
+- Auth: 否
+- Content-Type: `multipart/form-data`
+- Form:
+  - `file` 图片文件（`content-type` 需以 `image/` 开头）
+
+成功返回示例：
+
 ```json
 {
   "code": 200,
@@ -33,66 +87,83 @@
         "bbox": [105.2, 50.1, 204.8, 120.3]
       }
     ],
-    "image_url": "http://192.168.14.129:9000/uav-system/images/image_xxx.jpg"
+    "image_url": "http://<minio-host>/uav-system/images/image_xxx.jpg"
   }
 }
 ```
 
----
+失败示例（类型错误）：
 
-### 1.2 视频预测
-**接口：** `POST /video/predict`
-**描述：** 上传视频片段进行全过程的检测与推演。系统内部会使用 moviepy 将输出视频转码为 H.264 格式后自动上传至 MinIO，并返回远程 URL。
-**Content-Type:** `multipart/form-data`
+```json
+{
+  "code": 400,
+  "msg": "仅支持上传图片文件",
+  "data": null
+}
+```
 
-| 字段名称 | 类型 | 必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `file` | file | 是 | 需要预测的高清视频文件（支持 mp4, avi, mov, mkv 等）。 |
+### 4.2 视频预测
 
-**响应成功示例:**
+- Method: `POST`
+- URL: `/api/v1/video/predict`
+- Auth: 否
+- Content-Type: `multipart/form-data`
+- Form:
+  - `file` 视频文件（支持扩展名: `.mp4/.avi/.mov/.mkv`）
+
+成功返回示例：
+
 ```json
 {
   "code": 200,
   "msg": "视频识别成功",
   "data": {
-    "video_url": "http://192.168.14.129:9000/uav-system/videos/video_xxx_h264.mp4",
+    "video_url": "http://<minio-host>/uav-system/videos/video_xxx_h264.mp4",
     "message": "视频推理及渲染已完成"
   }
 }
 ```
 
----
+失败示例（格式不支持）：
 
-## 2. 核心功能: 模型权重管理 (Weights CRUD)
+```json
+{
+  "code": 400,
+  "msg": "仅支持 mp4, avi, mov, mkv 格式的视频文件。",
+  "data": null
+}
+```
 
-本组接口用于直接管理运行实例后端的 YOLO 模型 `.pt` 权重文件，能够在无须重启进程的情况下上传并重载服务模型。
+## 5. 模型权重管理（Weights）
 
-### 2.1 获取已有模型列表及当前状态
-**接口：** `GET /weights`
-**描述：** 返回目前 `weights/` 目录下存放的所有受支持的权重文件，并显示服务目前正在使用的活跃版本。
+### 5.1 获取权重列表
 
-**响应成功示例:**
+- Method: `GET`
+- URL: `/api/v1/weights/`
+- Auth: 否
+- 返回示例：
+
 ```json
 {
   "code": 200,
   "message": "获取成功",
   "data": {
     "active": "yolo26n.pt",
-    "available": ["yolo26n.pt", "yolov8m_custom.pt"]
+    "available": ["yolo26n.pt", "yolotest.pt"]
   }
 }
 ```
 
-### 2.2 上传新模型权重
-**接口：** `POST /weights`
-**描述：** 上传 `.pt` 模型文件以入驻后端本地仓库，备日后切换调用。
-**Content-Type:** `multipart/form-data`
+### 5.2 上传权重
 
-| 字段名称 | 类型 | 必填 | 描述 |
-| :--- | :--- | :--- | :--- |
-| `file` | file | 是 | 限定 `.pt` 扩展名的 PyTorch / YOLO 模型网络权重文件。 |
+- Method: `POST`
+- URL: `/api/v1/weights/`
+- Auth: 否
+- Content-Type: `multipart/form-data`
+- Form:
+  - `file` `.pt` 文件
+- 返回示例：
 
-**响应成功示例:**
 ```json
 {
   "code": 200,
@@ -103,14 +174,15 @@
 }
 ```
 
-### 2.3 切换/设定活跃模型 (Active)
-**接口：** `PUT /weights/{filename}/active`
-**描述：** 让系统在内存里立即释放旧模型，并指定 `{filename}` 为接下来所有的检测业务执行主计算模型。
+### 5.3 切换活跃权重
 
-**路径参数:**
-- `filename`: 所指定的目标模型库文件名 (如 `yolov8x_best.pt`)。
+- Method: `PUT`
+- URL: `/api/v1/weights/{filename}/active`
+- Auth: 否
+- Path:
+  - `filename` 文件名，可带或不带 `.pt`
+- 返回示例：
 
-**响应成功示例:**
 ```json
 {
   "code": 200,
@@ -118,14 +190,15 @@
 }
 ```
 
-### 2.4 删除限制模型权重
-**接口：** `DELETE /weights/{filename}`
-**描述：** 从后端删除无用的或陈旧的系统模型。系统会进行拦截检查：防止请求企图删除当前正被服务占用的活跃模型。
+### 5.4 删除权重
 
-**路径参数:**
-- `filename`: 即将删除的目标模型库文件名。
+- Method: `DELETE`
+- URL: `/api/v1/weights/{filename}`
+- Auth: 否
+- Path:
+  - `filename` 文件名，可带或不带 `.pt`
+- 返回示例：
 
-**响应成功示例:**
 ```json
 {
   "code": 200,
@@ -133,17 +206,15 @@
 }
 ```
 
----
+## 6. 推理参数管理（Params）
 
-## 3. 实时辅助: 推理参数设置 (Params CRUD)
+### 6.1 查询当前参数
 
-全局动态作用于底层原生 `model.predict()` 调用方法，提供极高的调试/业务灵活性。以下所有生效更改皆从设置完成起的下一次识别立刻开始生效。
+- Method: `GET`
+- URL: `/api/v1/params/`
+- Auth: 否
+- 返回示例：
 
-### 3.1 查询当前各项推理参数
-**接口：** `GET /params`
-**描述：** 拉取当前生效的所有定制化预测参数。
-
-**响应成功示例:**
 ```json
 {
   "code": 200,
@@ -155,12 +226,14 @@
 }
 ```
 
-### 3.2 批量全覆写/设置模型参数
-**接口：** `POST /params`
-**描述：** 批量合并及更新指定的预测参数群（如更改 `conf`、增大 `imgsz` 等）。
-**Content-Type:** `application/json`
+### 6.2 批量更新参数
 
-**请求 Body 结构示例:**
+- Method: `POST`
+- URL: `/api/v1/params/`
+- Auth: 否
+- Content-Type: `application/json`
+- Body 示例：
+
 ```json
 {
   "params": {
@@ -171,33 +244,38 @@
 }
 ```
 
-**响应成功示例:**
+- 返回示例：
+
 ```json
 {
   "code": 200,
   "message": "批量参数更新成功",
   "data": {
-    ...
+    "conf": 0.5,
+    "iou": 0.65,
+    "imgsz": 640
   }
 }
 ```
 
-### 3.3 修改具体独立参数
-**接口：** `PUT /params/{key}`
-**描述：** 提供单一浮点数的精确更新与覆盖配置。
-**Content-Type:** `application/json`
+### 6.3 设置单个参数
 
-**路径参数:**
-- `key`: 需要设置更新的键名（如 `conf` 或 `iou` 或 `vid_stride` 等 ultralytics 支持的所有参数名称）。
+- Method: `PUT`
+- URL: `/api/v1/params/{key}`
+- Auth: 否
+- Content-Type: `application/json`
+- Path:
+  - `key` 参数名
+- Body 示例：
 
-**请求 Body 结构示例:**
 ```json
 {
   "value": 0.82
 }
 ```
 
-**响应成功示例:**
+- 返回示例：
+
 ```json
 {
   "code": 200,
@@ -208,17 +286,23 @@
 }
 ```
 
-### 3.4 删除/归零指定独立参数
-**接口：** `DELETE /params/{key}`
-**描述：** 清除配置系统内的指定独立参数改动。这意味着该参数在下次侦测时将被重新重置为 YOLO Ultralytics 本原的框架引擎默认配置。
+### 6.4 删除单个参数
 
-**路径参数:**
-- `key`: 需要删除丢弃的键名。
+- Method: `DELETE`
+- URL: `/api/v1/params/{key}`
+- Auth: 否
+- Path:
+  - `key` 参数名
+- 返回示例：
 
-**响应成功示例:**
 ```json
 {
   "code": 200,
   "message": "参数 iou 删除成功"
 }
 ```
+
+## 7. 联调建议
+
+- 优先以 `/docs` 中的实时 OpenAPI 定义为准。
+- 如前端需要统一 `msg/message` 字段，建议服务端后续做响应格式收敛。
