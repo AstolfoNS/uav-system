@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -26,30 +25,15 @@ public class LoginUser implements Serializable {
 
     private String username;
 
-    private String nickname;
-
-    private String password;
-
-    private String email;
-
-    private String phoneNumber;
-
-    private LocalDateTime lastLoginTime;
-
     private List<String> roles;
 
     private List<String> permissions;
 
 
-    public static LoginUser from(UserEntity user, List<RoleEntity> roles, List<PermissionEntity> permissions) {
+    public static LoginUser of(UserEntity user, List<RoleEntity> roles, List<PermissionEntity> permissions) {
         return builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .nickname(user.getNickname())
-                .password(user.getPassword())
-                .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .lastLoginTime(user.getLastLoginTime())
                 .roles(roles.stream().map(RoleEntity::getCode).toList())
                 .permissions(permissions.stream().map(PermissionEntity::getCode).toList())
                 .build();

@@ -60,7 +60,7 @@ minio:
   endpoint: http://192.168.14.129:9000
   access-key: admin
   secret-key: 1234567890
-  default-bucket: default-bucket
+  default-bucket: uav-system
 okhttp:
   connect-timeout: 3
   read-timeout: 5

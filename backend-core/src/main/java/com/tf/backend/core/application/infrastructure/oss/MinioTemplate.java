@@ -40,6 +40,10 @@ public class MinioTemplate {
         return new MinioBucket(bucketName, props.getPresignedUrlExpiry(), props.getPartSize());
     }
 
+    public MinioBucket bucket() {
+        return bucket(props.getDefaultBucket());
+    }
+
     public boolean bucketExists(String bucketName) {
         validateBucketName(bucketName);
         return execute(
@@ -103,7 +107,7 @@ public class MinioTemplate {
         }
         return objectName.replace("\\", "/")    // 替换反斜杠为正斜杠 (兼容 Windows 传参习惯)
                 .replaceAll("^/+", "")          // 去除最前面的斜杠 (防止变成空根目录)
-                .replaceAll("/+", "");          // 将连续的多个斜杠合并为一个
+            .replaceAll("/+", "/");         // 将连续的多个斜杠合并为一个
     }
 
     @FunctionalInterface

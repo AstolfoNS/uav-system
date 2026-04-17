@@ -1,6 +1,7 @@
 package com.tf.backend.core.common.enumeration;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -16,6 +17,7 @@ public enum PermType {
     WEB(2),
     BOT(3);
 
+    @JsonValue
     @EnumValue
     private final int code;
 

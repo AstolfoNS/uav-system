@@ -235,13 +235,88 @@
   - `id` long
 - 返回: `R<Void>`
 
-## 7. 错误响应说明
+## 7. 用户个人中心模块
+
+### 7.1 获取当前登录用户资料
+
+- Method: `GET`
+- URL: `/api/v1/users/profile`
+- Auth: 是
+- 返回: `R<UserProfileVO>`
+
+`UserProfileVO` 常用字段：
+
+- `id` long 用户ID
+- `username` string 用户名
+- `nickname` string 昵称
+- `avatarUrl` string 头像地址
+- `email` string 邮箱
+- `phoneNumber` string 手机号
+- `gender` int 性别（0=未知, 1=男, 2=女）
+- `introduction` string 个人简介
+- `lastLoginTime` string 最近登录时间
+- `roles` string[] 角色编码列表
+- `permissions` string[] 权限编码列表
+
+安全说明：
+
+- 不返回 `password` 等敏感字段。
+
+### 7.2 修改当前登录用户资料
+
+- Method: `PUT`
+- URL: `/api/v1/users/profile`
+- Auth: 是
+- Content-Type: `application/json`
+- Body (`UserProfileUpdateDTO`):
+  - `nickname` string 必填，最大 64 字符
+  - `email` string 选填，需符合邮箱格式
+  - `phoneNumber` string 选填，需符合中国大陆手机号格式
+  - `avatarUrl` string 选填，头像 URL
+  - `gender` int 选填，`0=未知, 1=男, 2=女`
+  - `introduction` string 选填，最大 500 字符
+- 返回: `R<UserProfileVO>`（`msg` 通常为“个人资料修改成功”，`data` 为更新后的最新资料）
+
+业务约束补充：
+
+- 修改邮箱时会做唯一性校验。
+- 修改手机号时会做唯一性校验。
+
+## 8. 系统文件管理模块
+
+### 8.1 通用文件上传
+
+- Method: `POST`
+- URL: `/api/v1/files/upload`
+- Auth: 是
+- Content-Type: `multipart/form-data`
+- Form:
+  - `file` 文件（必填）
+  - `dir` string 选填，默认 `common`
+- 返回: `R<String>`（`data` 为可访问文件 URL）
+
+### 8.2 上传用户头像
+
+- Method: `POST`
+- URL: `/api/v1/files/upload/avatar`
+- Auth: 是
+- Content-Type: `multipart/form-data`
+- Form:
+  - `file` 图片文件（必填）
+- 返回: `R<String>`（`data` 为头像 URL）
+
+业务约束补充：
+
+- 仅支持 `JPG/PNG`（`image/jpeg`, `image/jpg`, `image/png`）。
+- 头像大小限制为 `2MB`。
+
+## 9. 错误响应说明
 
 - 鉴权失败通常返回 `401/403`（由安全框架处理）。
 - 参数缺失、业务异常由全局异常处理返回 `R` 结构。
 - `auth/refresh` 在缺失或非法 `Refresh-Token` 时会返回业务错误码与错误消息。
 
-## 8. 备注
+## 10. 备注
 
 建议以运行时 OpenAPI 为准进行最终联调：
 

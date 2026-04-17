@@ -135,7 +135,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return null;
         }
 
-        return LoginUser.from(
+        return LoginUser.of(
                 user,
                 roleService.getByUserId(userId),
                 permissionService.getByUserIdAndPermType(userId, type)

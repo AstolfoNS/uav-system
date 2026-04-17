@@ -19,8 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Slf4j
 @RequiredArgsConstructor
-@RestController
 @RequestMapping("/inference")
+@RestController
 @Tag(name = "推理模块", description = "YOLO目标检测推理接口")
 public class YoloInferenceController {
 

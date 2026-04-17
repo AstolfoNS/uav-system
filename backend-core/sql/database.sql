@@ -287,3 +287,4 @@ SELECT * FROM users;
 SELECT * FROM yolo_nodes;
 SELECT * FROM yolo_weights;
 SELECT * FROM yolo_node_params;
+SELECT * FROM yolo_detection_records;

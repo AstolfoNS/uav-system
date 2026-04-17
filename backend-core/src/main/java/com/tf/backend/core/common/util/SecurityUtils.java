@@ -2,6 +2,7 @@ package com.tf.backend.core.common.util;
 
 import com.tf.backend.core.application.security.AuthenticationToken;
 import com.tf.backend.core.application.security.LoginUser;
+import com.tf.backend.core.common.exception.BizException;
 import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -62,6 +63,13 @@ public final class SecurityUtils {
     }
 
     /**
+     * 获取当前登录用户，不存在时抛出统一业务异常
+     */
+    public static LoginUser requireLoginUser() {
+        return getLoginUser().orElseThrow(() -> new BizException("用户未登录"));
+    }
+
+    /**
      * 获取当前用户 ID
      */
     @Nullable
@@ -96,6 +104,16 @@ public final class SecurityUtils {
     public static List<String> getRoles() {
         return getLoginUser()
                 .map(LoginUser::getRoles)
+                .map(Collections::unmodifiableList)
+                .orElse(Collections.emptyList());
+    }
+
+    /**
+     * 获取当前用户权限列表（不可修改）
+     */
+    public static List<String> getPermissions() {
+        return getLoginUser()
+                .map(LoginUser::getPermissions)
                 .map(Collections::unmodifiableList)
                 .orElse(Collections.emptyList());
     }
