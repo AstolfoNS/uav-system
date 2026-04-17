@@ -1,0 +1,33 @@
+const dashboard = {
+  nodes: "Nodes",
+  online: "Online",
+  exception: "Exception",
+  records: "Detection Records",
+  nodesDesc: "Registered YOLO service endpoints",
+  onlineDesc: "Healthy nodes currently reachable",
+  exceptionDesc: "Nodes with abnormal runtime status",
+  recordsDesc: "Cumulative inference records",
+  clickHint: "Click to view",
+  ariaViewAllNodes: "View all nodes",
+  ariaViewOnlineNodes: "View online nodes",
+  ariaViewExceptionNodes: "View exception nodes",
+  ariaViewRecords: "View inference records",
+  nodeStatus: "Node Status",
+  offline: "Offline",
+  recentRecords: "Recent Inference Records",
+  recentRecordsEmpty: "No recent inference records",
+  typeImage: "IMAGE",
+  typeVideo: "VIDEO",
+  ok: "OK",
+  failed: "FAILED",
+  loadFailed: "Failed to load dashboard",
+  table: {
+    id: "ID",
+    node: "Node",
+    type: "Type",
+    filename: "Filename",
+    status: "Status",
+  },
+};
+
+export default dashboard;

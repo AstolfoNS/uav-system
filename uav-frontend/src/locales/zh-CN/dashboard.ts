@@ -1,0 +1,33 @@
+const dashboard = {
+  nodes: "节点数",
+  online: "在线数",
+  exception: "异常数",
+  records: "检测记录",
+  nodesDesc: "已注册的 YOLO 服务端点",
+  onlineDesc: "当前可用的健康节点",
+  exceptionDesc: "运行状态异常的节点数量",
+  recordsDesc: "累计推理记录数",
+  clickHint: "点击查看",
+  ariaViewAllNodes: "查看全部节点列表",
+  ariaViewOnlineNodes: "查看在线节点列表",
+  ariaViewExceptionNodes: "查看异常节点列表",
+  ariaViewRecords: "查看推理记录列表",
+  nodeStatus: "节点状态",
+  offline: "离线",
+  recentRecords: "最近推理记录",
+  recentRecordsEmpty: "暂无最近推理记录",
+  typeImage: "图片",
+  typeVideo: "视频",
+  ok: "成功",
+  failed: "失败",
+  loadFailed: "加载总览失败",
+  table: {
+    id: "编号",
+    node: "节点",
+    type: "类型",
+    filename: "文件名",
+    status: "状态",
+  },
+};
+
+export default dashboard;

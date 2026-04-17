@@ -1,0 +1,974 @@
+<script setup lang="ts">
+import { computed, nextTick, reactive, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
+import {
+  applyTemplate,
+  changeActiveWeight,
+  createNode,
+  deleteWeight,
+  fetchNodeDetail,
+  fetchNodePage,
+  removeNode,
+  syncNode,
+  updateNode,
+  uploadWeight,
+} from "@/api";
+import { useScrollEdgeState } from "@/composables/useScrollEdgeState";
+import type { YoloNode, YoloNodeUpsertRequest } from "@/types";
+import { notify } from "@/composables/useNotifier";
+import ConfirmActionDialog from "@/components/ConfirmActionDialog.vue";
+import PromptActionDialog from "@/components/PromptActionDialog.vue";
+import PageHero from "@/components/PageHero.vue";
+
+const { t } = useI18n();
+const route = useRoute();
+
+const loading = ref(false);
+const saving = ref(false);
+
+const nodes = ref<YoloNode[]>([]);
+const total = ref(0);
+const current = ref(1);
+const size = ref(10);
+
+const filters = reactive({
+  nodeName: "",
+  status: null as number | null,
+});
+
+const dialog = ref(false);
+const editId = ref<number | null>(null);
+
+const form = reactive<YoloNodeUpsertRequest>({
+  nodeName: "",
+  host: "",
+  port: "",
+  description: "",
+  httpProtocol: "http",
+  apiVersion: "v1",
+});
+
+const nodeFormRef = ref<{
+  validate: () => Promise<{ valid: boolean }>;
+} | null>(null);
+
+const detailDialog = ref(false);
+const detailLoading = ref(false);
+const detail = ref<Record<string, unknown> | null>(null);
+const showAllNodeDetails = ref(false);
+const selectedNode = ref<YoloNode | null>(null);
+const uploadingWeightNodeId = ref<number | null>(null);
+const dialogBusy = ref(false);
+const nodeDetailScrollRef = ref<HTMLElement | null>(null);
+
+const { scrollState, refreshByElement, handleScroll } = useScrollEdgeState(
+  ["nodeDetail"] as const,
+  { threshold: 3 },
+);
+
+const confirmDialog = reactive({
+  show: false,
+  title: "",
+  message: "",
+  nodeId: null as number | null,
+});
+
+const promptDialog = reactive({
+  show: false,
+  title: "",
+  label: "",
+  value: "",
+  nodeId: null as number | null,
+  action: "template" as "template" | "switch" | "deleteWeight",
+});
+
+const WEIGHT_MAX_SIZE_BYTES = 1024 * 1024 * 1024;
+const WEIGHT_ALLOWED_EXTENSIONS = [".pt", ".engine"];
+
+function getFileExtension(filename: string): string {
+  const index = filename.lastIndexOf(".");
+  if (index < 0) {
+    return "";
+  }
+  return filename.slice(index).toLowerCase();
+}
+
+function canUploadWeight(file: File): boolean {
+  const extension = getFileExtension(file.name);
+  if (!WEIGHT_ALLOWED_EXTENSIONS.includes(extension)) {
+    notify(t("node.weightTypeInvalid"), "warning");
+    return false;
+  }
+
+  if (file.size > WEIGHT_MAX_SIZE_BYTES) {
+    notify(t("node.weightTooLarge"), "warning");
+    return false;
+  }
+
+  return true;
+}
+
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(total.value / size.value)),
+);
+
+const onlineCountInPage = computed(
+  () =>
+    nodes.value.filter((item) => normalizeNodeStatus(item.status) === 1).length,
+);
+
+const offlineCountInPage = computed(
+  () =>
+    nodes.value.filter((item) => normalizeNodeStatus(item.status) === 0).length,
+);
+
+const exceptionCountInPage = computed(
+  () =>
+    nodes.value.filter((item) => normalizeNodeStatus(item.status) === 2).length,
+);
+
+const headers = computed(() => [
+  { title: t("node.table.id"), key: "id", width: 90 },
+  { title: t("node.table.nodeName"), key: "nodeName" },
+  { title: t("node.table.host"), key: "host" },
+  { title: t("node.table.port"), key: "port", width: 100 },
+  { title: t("node.table.status"), key: "status", width: 110 },
+  { title: t("node.table.activeWeight"), key: "activeWeightName" },
+  {
+    title: t("node.table.actions"),
+    key: "actions",
+    sortable: false,
+    width: 280,
+  },
+]);
+
+const statusItems = computed(() => [
+  { title: t("node.all"), value: null },
+  { title: t("node.offline"), value: 0 },
+  { title: t("node.online"), value: 1 },
+  { title: t("node.exception"), value: 2 },
+]);
+
+const nodeNameRules = computed(() => [
+  (value: string) => !!value?.trim() || t("node.nodeNameRequired"),
+]);
+
+const hostRules = computed(() => [
+  (value: string) => !!value?.trim() || t("node.hostRequired"),
+]);
+
+const portRules = computed(() => [
+  (value: string) => !!value?.trim() || t("node.portRequired"),
+  (value: string) => {
+    const port = Number(value);
+    return Number.isInteger(port) && port >= 1 && port <= 65535
+      ? true
+      : t("node.portInvalid");
+  },
+]);
+
+const protocolRules = computed(() => [
+  (value: string) => {
+    const protocol = String(value || "").toLowerCase();
+    return protocol === "http" || protocol === "https"
+      ? true
+      : t("node.protocolInvalid");
+  },
+]);
+
+function resetForm(): void {
+  form.nodeName = "";
+  form.host = "";
+  form.port = "";
+  form.description = "";
+  form.httpProtocol = "http";
+  form.apiVersion = "v1";
+  editId.value = null;
+}
+
+function fillForm(node: YoloNode): void {
+  form.nodeName = String(node.nodeName ?? "");
+  form.host = String(node.host ?? "");
+  form.port = String(node.port ?? "");
+  form.description = String(node.description ?? "");
+  form.httpProtocol = String(node.httpProtocol ?? "http");
+  form.apiVersion = String(node.apiVersion ?? "v1");
+}
+
+async function loadNodes(): Promise<void> {
+  loading.value = true;
+  try {
+    const data = await fetchNodePage({
+      current: current.value,
+      size: size.value,
+      nodeName: filters.nodeName.trim() || undefined,
+      status: filters.status,
+    });
+
+    nodes.value = data.records ?? [];
+    total.value = Number(data.total ?? 0);
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.loadFailed"),
+      "error",
+    );
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function openCreate(): Promise<void> {
+  resetForm();
+  dialog.value = true;
+}
+
+async function openEdit(node: YoloNode): Promise<void> {
+  resetForm();
+  editId.value = Number(node.id);
+  fillForm(node);
+  dialog.value = true;
+}
+
+async function submitNode(): Promise<void> {
+  if (saving.value) {
+    return;
+  }
+
+  const result = await nodeFormRef.value?.validate();
+  if (!result?.valid) {
+    return;
+  }
+
+  saving.value = true;
+  try {
+    if (editId.value) {
+      await updateNode(editId.value, { ...form });
+      notify(t("node.updated"), "success");
+    } else {
+      await createNode({ ...form });
+      notify(t("node.created"), "success");
+    }
+
+    dialog.value = false;
+    await loadNodes();
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.saveFailed"),
+      "error",
+    );
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function remove(nodeId: number): Promise<void> {
+  confirmDialog.title = t("node.deleteTitle");
+  confirmDialog.message = t("node.deleteConfirm");
+  confirmDialog.nodeId = nodeId;
+  confirmDialog.show = true;
+}
+
+async function confirmRemoveNode(): Promise<void> {
+  if (!confirmDialog.nodeId || dialogBusy.value) {
+    return;
+  }
+
+  try {
+    dialogBusy.value = true;
+    await removeNode(confirmDialog.nodeId);
+    notify(t("node.deleteSuccess"), "success");
+    confirmDialog.show = false;
+    await loadNodes();
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.deleteFailed"),
+      "error",
+    );
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function openDetail(node: YoloNode): Promise<void> {
+  detailDialog.value = true;
+  detailLoading.value = true;
+  selectedNode.value = node;
+  try {
+    detail.value = await fetchNodeDetail(Number(node.id));
+    showAllNodeDetails.value = false;
+  } catch (error) {
+    detail.value = null;
+    notify(
+      error instanceof Error ? error.message : t("node.detailFailed"),
+      "error",
+    );
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+async function triggerSync(nodeId: number): Promise<void> {
+  try {
+    await syncNode(nodeId);
+    notify(t("node.syncSuccess"), "success");
+    await loadNodes();
+  } catch (error) {
+    notify(
+      error instanceof Error ? error.message : t("node.syncFailed"),
+      "error",
+    );
+  }
+}
+
+async function triggerTemplate(nodeId: number): Promise<void> {
+  promptDialog.title = t("node.templateTitle");
+  promptDialog.label = t("node.templateLabel");
+  promptDialog.value = "";
+  promptDialog.nodeId = nodeId;
+  promptDialog.action = "template";
+  promptDialog.show = true;
+}
+
+async function submitPrompt(value: string): Promise<void> {
+  if (!promptDialog.nodeId || dialogBusy.value) {
+    return;
+  }
+
+  const nodeId = promptDialog.nodeId;
+  try {
+    dialogBusy.value = true;
+    if (promptDialog.action === "template") {
+      await applyTemplate(nodeId, value);
+      notify(t("node.templateSuccess"), "success");
+    } else if (promptDialog.action === "switch") {
+      await changeActiveWeight(nodeId, value);
+      notify(t("node.switchSuccess"), "success");
+    } else {
+      await deleteWeight(nodeId, value);
+      notify(t("node.deleteWeightSuccess"), "success");
+    }
+
+    promptDialog.show = false;
+    await loadNodes();
+    if (selectedNode.value?.id === nodeId) {
+      await openDetail(selectedNode.value);
+    }
+  } catch (error) {
+    const fallback =
+      promptDialog.action === "template"
+        ? t("node.templateFailed")
+        : promptDialog.action === "switch"
+          ? t("node.switchFailed")
+          : t("node.deleteWeightFailed");
+    notify(error instanceof Error ? error.message : fallback, "error");
+  } finally {
+    dialogBusy.value = false;
+  }
+}
+
+async function triggerWeightUpload(nodeId: number): Promise<void> {
+  if (uploadingWeightNodeId.value !== null) {
+    return;
+  }
+
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".pt,.engine";
+  input.onchange = async () => {
+    const target = input.files?.[0];
+    if (!target) {
+      notify(t("node.weightRequired"), "warning");
+      return;
+    }
+
+    if (!canUploadWeight(target)) {
+      return;
+    }
+
+    try {
+      uploadingWeightNodeId.value = nodeId;
+      await uploadWeight(nodeId, target);
+      notify(t("node.uploadSuccess"), "success");
+      await loadNodes();
+      if (selectedNode.value?.id === nodeId) {
+        await openDetail(selectedNode.value);
+      }
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : t("node.uploadFailed"),
+        "error",
+      );
+    } finally {
+      uploadingWeightNodeId.value = null;
+    }
+  };
+  input.click();
+}
+
+async function triggerChangeWeight(nodeId: number): Promise<void> {
+  promptDialog.title = t("node.switchTitle");
+  promptDialog.label = t("node.switchLabel");
+  promptDialog.value = "";
+  promptDialog.nodeId = nodeId;
+  promptDialog.action = "switch";
+  promptDialog.show = true;
+}
+
+async function triggerDeleteWeight(nodeId: number): Promise<void> {
+  promptDialog.title = t("node.deleteWeightTitle");
+  promptDialog.label = t("node.deleteWeightLabel");
+  promptDialog.value = "";
+  promptDialog.nodeId = nodeId;
+  promptDialog.action = "deleteWeight";
+  promptDialog.show = true;
+}
+
+function normalizeNodeStatus(status: unknown): number {
+  if (typeof status === "number") {
+    if (status === 1 || status === 2) {
+      return status;
+    }
+    return 0;
+  }
+
+  const normalized = String(status ?? "")
+    .trim()
+    .toUpperCase();
+
+  if (
+    normalized === "1" ||
+    normalized === "ONLINE" ||
+    normalized === "ENABLED"
+  ) {
+    return 1;
+  }
+
+  if (
+    normalized === "2" ||
+    normalized === "EXCEPTION" ||
+    normalized === "ERROR" ||
+    normalized === "ABNORMAL"
+  ) {
+    return 2;
+  }
+
+  return 0;
+}
+
+function statusChipColor(status: unknown): string {
+  if (normalizeNodeStatus(status) === 1) {
+    return "success";
+  }
+
+  if (normalizeNodeStatus(status) === 2) {
+    return "warning";
+  }
+
+  return "error";
+}
+
+function statusLabel(status: unknown): string {
+  if (normalizeNodeStatus(status) === 1) {
+    return t("node.state.online");
+  }
+
+  if (normalizeNodeStatus(status) === 2) {
+    return t("node.state.exception");
+  }
+
+  return t("node.state.offline");
+}
+
+function asText(value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return t("common.unavailable");
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function detailRowCount(detailData: Record<string, unknown>): number {
+  return Object.keys(detailData).length;
+}
+
+function detailRowsByMode(
+  detailData: Record<string, unknown>,
+  showAll: boolean,
+): Array<{ key: string; value: string }> {
+  const entries = Object.entries(detailData);
+  const target = showAll ? entries : entries.slice(0, 16);
+  return target.map(([key, value]) => ({ key, value: asText(value) }));
+}
+
+function detailSummaryText(detailData: Record<string, unknown>): string {
+  const rows = [
+    `${t("node.table.id")}: ${asText(detailData.id)}`,
+    `${t("node.table.nodeName")}: ${asText(detailData.nodeName)}`,
+    `${t("node.table.host")}: ${asText(detailData.host)}`,
+    `${t("node.table.port")}: ${asText(detailData.port)}`,
+    `${t("node.table.status")}: ${asText(detailData.status)}`,
+    `${t("node.table.activeWeight")}: ${asText(detailData.activeWeightName)}`,
+  ];
+  return rows.join("\n");
+}
+
+async function copyNodeSummary(
+  detailData: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(detailSummaryText(detailData));
+    notify(t("node.copiedSummary"), "success");
+  } catch {
+    notify(t("node.copySummaryFailed"), "error");
+  }
+}
+
+function refreshNodeDetailScrollState(): void {
+  refreshByElement("nodeDetail", nodeDetailScrollRef.value);
+}
+
+function parseStatusQuery(value: unknown): number | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const numeric = Number(value);
+  if (numeric === 0 || numeric === 1 || numeric === 2) {
+    return numeric;
+  }
+
+  return null;
+}
+
+watch(
+  () => route.query.status,
+  async (statusQuery) => {
+    const nextStatus = parseStatusQuery(statusQuery);
+    if (filters.status !== nextStatus) {
+      filters.status = nextStatus;
+      current.value = 1;
+    }
+    await loadNodes();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [
+    detailDialog.value,
+    detailLoading.value,
+    detail.value,
+    showAllNodeDetails.value,
+  ],
+  async () => {
+    await nextTick();
+    refreshNodeDetailScrollState();
+  },
+  { flush: "post" },
+);
+</script>
+
+<template>
+  <div class="page-shell node-page">
+    <PageHero
+      :title="t('node.title')"
+      :subtitle="`${t('node.table.nodeName')} · ${t('node.table.activeWeight')}`"
+    >
+      <template #actions>
+        <v-btn
+          class="btn-primary-action"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="elevated"
+          @click="openCreate"
+          >{{ t("node.addNode") }}</v-btn
+        >
+      </template>
+    </PageHero>
+
+    <v-card class="card-ambient card-spacious" rounded="xl">
+      <v-card-title class="text-subtitle-1 font-weight-bold">
+        {{ t("common.apply") }} / {{ t("common.reset") }}
+      </v-card-title>
+      <v-card-text>
+        <v-row class="filter-row">
+          <v-col cols="12" md="4">
+            <v-text-field
+              v-model="filters.nodeName"
+              clearable
+              :label="t('node.nodeName')"
+              prepend-inner-icon="mdi-magnify"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="filters.status"
+              :items="statusItems"
+              item-title="title"
+              item-value="value"
+              :label="t('common.status')"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col
+            cols="12"
+            md="5"
+            class="d-flex ga-2 align-end justify-md-end flex-wrap"
+          >
+            <v-btn
+              class="btn-primary-action"
+              color="primary"
+              prepend-icon="mdi-filter"
+              @click="
+                current = 1;
+                loadNodes();
+              "
+              >{{ t("common.apply") }}</v-btn
+            >
+            <v-btn
+              class="btn-secondary-action"
+              variant="tonal"
+              @click="
+                filters.nodeName = '';
+                filters.status = null;
+                current = 1;
+                loadNodes();
+              "
+              >{{ t("common.reset") }}</v-btn
+            >
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <v-row>
+      <v-col cols="12" md="4">
+        <v-card class="card-ambient card-spacious summary-card" rounded="xl">
+          <v-card-title class="text-subtitle-1 font-weight-bold">{{
+            t("node.table.status")
+          }}</v-card-title>
+          <v-card-text>
+            <div class="status-chip-wall">
+              <v-chip color="success" variant="flat"
+                >{{ t("node.online") }} · {{ onlineCountInPage }}</v-chip
+              >
+              <v-chip color="error" variant="flat"
+                >{{ t("node.offline") }} · {{ offlineCountInPage }}</v-chip
+              >
+              <v-chip color="warning" variant="flat"
+                >{{ t("node.exception") }} · {{ exceptionCountInPage }}</v-chip
+              >
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="8">
+        <v-card class="card-ambient card-spacious summary-card" rounded="xl">
+          <v-card-title class="text-subtitle-1 font-weight-bold">
+            {{ t("node.table.actions") }}
+          </v-card-title>
+          <v-card-text class="text-body-2 text-medium-emphasis">
+            mdi-eye / mdi-pencil / mdi-sync / mdi-tune-variant / mdi-upload /
+            mdi-swap-horizontal / mdi-file-remove / mdi-delete
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-card class="card-ambient card-spacious" rounded="xl">
+      <v-card-title class="text-subtitle-1 font-weight-bold">{{
+        t("node.title")
+      }}</v-card-title>
+      <v-card-text class="table-shell">
+        <v-data-table
+          :headers="headers"
+          :items="nodes"
+          :loading="loading"
+          :loading-text="t('common.loading')"
+          :no-data-text="t('node.tableEmpty')"
+          density="comfortable"
+          item-value="id"
+        >
+          <template #item.status="{ item }">
+            <v-chip
+              :color="statusChipColor(item.status)"
+              size="small"
+              variant="flat"
+            >
+              {{ statusLabel(item.status) }}
+            </v-chip>
+          </template>
+
+          <template #item.actions="{ item }">
+            <div class="d-flex ga-1 flex-wrap action-strip">
+              <v-btn
+                icon="mdi-eye"
+                size="x-small"
+                variant="text"
+                @click="openDetail(item)"
+              />
+              <v-btn
+                icon="mdi-pencil"
+                size="x-small"
+                variant="text"
+                @click="openEdit(item)"
+              />
+              <v-btn
+                icon="mdi-sync"
+                size="x-small"
+                variant="text"
+                @click="triggerSync(Number(item.id))"
+              />
+              <v-btn
+                icon="mdi-tune-variant"
+                size="x-small"
+                variant="text"
+                @click="triggerTemplate(Number(item.id))"
+              />
+              <v-btn
+                icon="mdi-upload"
+                size="x-small"
+                variant="text"
+                :loading="uploadingWeightNodeId === Number(item.id)"
+                :disabled="uploadingWeightNodeId !== null"
+                @click="triggerWeightUpload(Number(item.id))"
+              />
+              <v-btn
+                icon="mdi-swap-horizontal"
+                size="x-small"
+                variant="text"
+                @click="triggerChangeWeight(Number(item.id))"
+              />
+              <v-btn
+                icon="mdi-file-remove"
+                size="x-small"
+                variant="text"
+                @click="triggerDeleteWeight(Number(item.id))"
+              />
+              <v-btn
+                icon="mdi-delete"
+                size="x-small"
+                variant="text"
+                @click="remove(Number(item.id))"
+              />
+            </div>
+          </template>
+        </v-data-table>
+
+        <div class="d-flex justify-end mt-4">
+          <v-pagination
+            v-model="current"
+            :length="pageCount"
+            :total-visible="7"
+            @update:model-value="loadNodes"
+          />
+        </div>
+      </v-card-text>
+    </v-card>
+  </div>
+
+  <v-dialog v-model="dialog" max-width="720">
+    <v-card rounded="xl">
+      <v-card-title>{{
+        editId ? t("node.editNode") : t("node.createNode")
+      }}</v-card-title>
+      <v-card-text>
+        <v-form ref="nodeFormRef" @submit.prevent="submitNode">
+          <v-row dense>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="form.nodeName"
+                :label="t('node.nodeName')"
+                :rules="nodeNameRules"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="form.host"
+                :label="t('node.host')"
+                :rules="hostRules"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="form.port"
+                inputmode="numeric"
+                :label="t('node.port')"
+                :rules="portRules"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="form.httpProtocol"
+                :label="t('node.protocol')"
+                :rules="protocolRules"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="form.apiVersion"
+                :label="t('node.apiVersion')"
+                variant="outlined"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-textarea
+                v-model="form.description"
+                :label="t('node.description')"
+                rows="3"
+                variant="outlined"
+              />
+            </v-col>
+          </v-row>
+        </v-form>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="dialog = false">{{
+          t("common.cancel")
+        }}</v-btn>
+        <v-btn color="primary" :loading="saving" @click="submitNode">{{
+          t("common.save")
+        }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <ConfirmActionDialog
+    v-model="confirmDialog.show"
+    :cancel-text="t('common.cancel')"
+    :confirm-text="t('common.delete')"
+    :loading="dialogBusy"
+    :message="confirmDialog.message"
+    :title="confirmDialog.title"
+    @confirm="confirmRemoveNode"
+  />
+
+  <PromptActionDialog
+    v-model="promptDialog.show"
+    :cancel-text="t('common.cancel')"
+    :confirm-text="t('common.confirm')"
+    :initial-value="promptDialog.value"
+    :label="promptDialog.label"
+    :loading="dialogBusy"
+    :title="promptDialog.title"
+    @confirm="submitPrompt"
+  />
+
+  <v-dialog v-model="detailDialog" max-width="860">
+    <v-card rounded="xl">
+      <v-card-title class="d-flex align-center ga-2">
+        {{ t("node.detail") }}
+        <v-spacer />
+        <v-btn
+          v-if="detail"
+          color="primary"
+          size="small"
+          variant="text"
+          @click="copyNodeSummary(detail)"
+        >
+          {{ t("common.copy") }}
+        </v-btn>
+        <v-btn
+          v-if="selectedNode"
+          icon="mdi-refresh"
+          size="small"
+          variant="text"
+          @click="selectedNode && openDetail(selectedNode)"
+        />
+      </v-card-title>
+      <v-divider />
+      <v-card-text>
+        <v-progress-linear
+          v-if="detailLoading"
+          color="primary"
+          indeterminate
+          rounded
+        />
+        <v-card v-else-if="detail" variant="tonal">
+          <v-card-title class="d-flex align-center ga-2">
+            {{ t("node.detailSummary") }}
+            <v-spacer />
+            <v-btn
+              v-if="detailRowCount(detail) > 16"
+              color="primary"
+              size="small"
+              variant="text"
+              @click="showAllNodeDetails = !showAllNodeDetails"
+            >
+              {{
+                showAllNodeDetails ? t("common.showLess") : t("common.showAll")
+              }}
+            </v-btn>
+          </v-card-title>
+          <v-card-text>
+            <div
+              ref="nodeDetailScrollRef"
+              class="node-detail-scroll scroll-elegant scroll-edge-hint"
+              :class="{
+                'scroll-at-top': scrollState.nodeDetail.atTop,
+                'scroll-at-bottom': scrollState.nodeDetail.atBottom,
+              }"
+              @scroll.passive="handleScroll('nodeDetail', $event)"
+            >
+              <v-row dense>
+                <v-col
+                  v-for="item in detailRowsByMode(detail, showAllNodeDetails)"
+                  :key="`node-detail-${item.key}`"
+                  cols="12"
+                  md="6"
+                >
+                  <div class="text-caption text-medium-emphasis mono">
+                    {{ item.key }}
+                  </div>
+                  <div class="text-body-2">{{ item.value }}</div>
+                </v-col>
+              </v-row>
+            </div>
+          </v-card-text>
+        </v-card>
+        <div v-else class="text-body-2 text-medium-emphasis">
+          {{ t("node.detailEmpty") }}
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+</template>
+
+<style scoped>
+.summary-card {
+  min-height: 144px;
+}
+
+.filter-row {
+  row-gap: 8px;
+}
+
+.status-chip-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.table-shell {
+  padding-top: 16px;
+}
+
+.action-strip :deep(.v-btn) {
+  border-radius: 10px;
+}
+
+.node-detail-scroll {
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+</style>
