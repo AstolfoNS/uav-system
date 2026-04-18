@@ -25,6 +25,7 @@ const inference = {
   detectionDetails: "检测详情",
   detailItemsEmpty: "暂无详情数据",
   statusOk: "成功",
+  statusProcessing: "处理中",
   statusFailed: "失败",
   typeImage: "图片",
   typeVideo: "视频",

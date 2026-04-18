@@ -3,7 +3,7 @@ package com.tf.backend.core.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.tf.backend.core.application.domain.yolo.YoloInferenceService;
 import com.tf.backend.core.application.infrastructure.repo.YoloDetectionRecordService;
-import com.tf.backend.core.common.enumeration.Status;
+import com.tf.backend.core.common.enumeration.TaskStatus;
 import com.tf.backend.core.common.response.R;
 import com.tf.backend.core.model.entity.YoloDetectionRecordEntity;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,8 +51,7 @@ public class YoloInferenceController {
         // 调用业务服务，它会同步阻塞等待 FastAPI 返回，并完成落库
         YoloDetectionRecordEntity record = yoloInferenceService.predictImage(nodeId, file);
         
-        // 如果状态为 0，说明失败了，向前端返回错误信息
-        if (record.getStatus() == Status.DISABLED) {
+        if (record.getTaskStatus() == TaskStatus.FAILED) {
             return R.failed("图像检测失败: " + record.getErrorMessage());
         }
         
@@ -80,7 +79,7 @@ public class YoloInferenceController {
 
         YoloDetectionRecordEntity record = yoloInferenceService.predictVideo(nodeId, file);
 
-        if (record.getStatus() == Status.DISABLED) {
+        if (record.getTaskStatus() == TaskStatus.FAILED) {
             return R.failed("视频检测失败: " + record.getErrorMessage());
         }
 

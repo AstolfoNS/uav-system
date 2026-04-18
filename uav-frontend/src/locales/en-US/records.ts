@@ -25,6 +25,7 @@ const records = {
   deleteFailed: "Delete failed",
   deleteSuccess: "Record deleted",
   statusOk: "OK",
+  statusProcessing: "PROCESSING",
   statusFailed: "FAILED",
   typeImage: "IMAGE",
   typeVideo: "VIDEO",

@@ -247,6 +247,7 @@ CREATE TABLE IF NOT EXISTS yolo_detection_records
     node_id                     BIGINT UNSIGNED NOT NULL                                                                COMMENT '执行此次预测的节点ID',
     code                        VARCHAR(64)     NOT NULL                                                                COMMENT '执行编码',
     task_type                   TINYINT         NOT NULL                                                                COMMENT '任务类型：1=图像检测, 2=视频检测',
+    task_status                 TINYINT         NOT NULL    DEFAULT 0                                                   COMMENT '任务状态：0=待处理,1=处理中,2=成功,3=失败',
     original_filename           VARCHAR(255)    NOT NULL                                                                COMMENT '上传的原始文件名',
 
     -- 结果数据
@@ -273,6 +274,15 @@ CREATE TABLE IF NOT EXISTS yolo_detection_records
     UNIQUE KEY uk_code(code, unique_if_active)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'YOLO目标检测历史记录表';
+
+-- 历史库增量迁移：若已存在 yolo_detection_records，请补充 task_status 字段。
+ALTER TABLE yolo_detection_records
+    ADD COLUMN IF NOT EXISTS task_status TINYINT NOT NULL DEFAULT 0 COMMENT '任务状态：0=待处理,1=处理中,2=成功,3=失败' AFTER task_type;
+
+-- 将历史数据回填到 task_status：status=1 视为成功，其余视为失败。
+UPDATE yolo_detection_records
+SET task_status = CASE WHEN status = 1 THEN 2 ELSE 3 END
+WHERE task_status = 0;
 
 
 
@@ -472,6 +482,48 @@ WHERE NOT EXISTS (
     SELECT 1 FROM permissions WHERE code = 'inference:record:delete' AND is_deleted = 0
 );
 
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:role:create', '新增角色', 1, 'POST /admin/rbac/roles', 70
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:role:create' AND is_deleted = 0
+);
+
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:user:page', '分页查询RBAC用户', 1, 'GET /admin/rbac/users/page', 71
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:user:page' AND is_deleted = 0
+);
+
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:role:list', '查询RBAC角色列表', 1, 'GET /admin/rbac/roles', 72
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:role:list' AND is_deleted = 0
+);
+
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:permission:list', '查询RBAC权限列表', 1, 'GET /admin/rbac/permissions', 73
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:permission:list' AND is_deleted = 0
+);
+
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:user:role:update', '更新用户角色集合', 1, 'PUT /admin/rbac/users/{userId}/roles', 74
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:user:role:update' AND is_deleted = 0
+);
+
+INSERT INTO permissions (code, name, type, description, sort_order)
+SELECT 'rbac:role:permission:update', '更新角色权限集合', 1, 'PUT /admin/rbac/roles/{roleId}/permissions', 75
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM permissions WHERE code = 'rbac:role:permission:update' AND is_deleted = 0
+);
+
 -- 3) 角色绑定权限：admin 绑定全部以上 API 权限
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
@@ -482,7 +534,9 @@ JOIN permissions p ON p.code IN (
     'model:node:page', 'model:node:detail', 'model:node:create', 'model:node:update', 'model:node:delete', 'model:node:sync',
     'model:param:apply', 'model:param:list', 'model:param:detail', 'model:param:create', 'model:param:update', 'model:param:delete',
     'model:weight:list', 'model:weight:upload', 'model:weight:switch', 'model:weight:delete',
-    'inference:image:run', 'inference:video:run', 'inference:record:page', 'inference:record:detail', 'inference:record:delete'
+    'inference:image:run', 'inference:video:run', 'inference:record:page', 'inference:record:detail', 'inference:record:delete',
+    'rbac:role:create', 'rbac:user:page', 'rbac:role:list', 'rbac:permission:list',
+    'rbac:user:role:update', 'rbac:role:permission:update'
 )
 WHERE r.code = 'admin'
   AND r.is_deleted = 0

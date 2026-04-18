@@ -25,6 +25,7 @@ const records = {
   deleteFailed: "删除失败",
   deleteSuccess: "记录已删除",
   statusOk: "成功",
+  statusProcessing: "处理中",
   statusFailed: "失败",
   typeImage: "图片",
   typeVideo: "视频",

@@ -50,6 +50,7 @@ const routes: RouteRecordRaw[] = [
         path: "inference",
         name: "inference",
         component: InferenceView,
+        meta: { keepAlive: true },
       },
       {
         path: "records",

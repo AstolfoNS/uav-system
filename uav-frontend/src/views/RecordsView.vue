@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import {
   fetchNodePage,
@@ -59,6 +67,8 @@ const tableRefreshing = computed(
   () => isInitialLoadDone.value && loading.value,
 );
 const suppressTaskTypeAutoLoad = ref(false);
+const RECORDS_POLL_INTERVAL_MS = 3000;
+let recordsPollTimer: ReturnType<typeof setInterval> | null = null;
 
 function getPageScrollTop(): number {
   return (
@@ -114,16 +124,25 @@ const pageCount = computed(() =>
 const successCountInPage = computed(
   () =>
     filteredRecords.value.filter(
-      (item) => normalizeRecordStatus(item.status) === 1,
+      (item) => resolveRecordStatus(item) === "success",
     ).length,
 );
 
 const failedCountInPage = computed(
   () =>
     filteredRecords.value.filter(
-      (item) => normalizeRecordStatus(item.status) !== 1,
+      (item) => resolveRecordStatus(item) === "failed",
     ).length,
 );
+
+const processingCountInPage = computed(
+  () =>
+    filteredRecords.value.filter(
+      (item) => resolveRecordStatus(item) === "processing",
+    ).length,
+);
+
+const hasProcessingRecords = computed(() => processingCountInPage.value > 0);
 
 const imageCountInPage = computed(
   () =>
@@ -375,12 +394,64 @@ function typeLabel(taskType: number | undefined): string {
     : t("records.typeImage");
 }
 
-function normalizeRecordStatus(status: unknown): number {
-  if (typeof status === "number") {
-    return status === 1 ? 1 : 0;
+type RecordUiStatus = "success" | "processing" | "failed";
+
+function hasErrorMessage(record: YoloDetectionRecord): boolean {
+  const normalized = String(record.errorMessage ?? "").trim().toLowerCase();
+  return Boolean(
+    normalized && normalized !== "null" && normalized !== "undefined",
+  );
+}
+
+function resolveRecordStatus(record: YoloDetectionRecord): RecordUiStatus {
+  const taskStatusRaw = record.taskStatus;
+
+  if (taskStatusRaw !== null && taskStatusRaw !== undefined && taskStatusRaw !== "") {
+    const normalizedTaskStatus = String(taskStatusRaw).trim().toUpperCase();
+
+    if (normalizedTaskStatus === "2" || normalizedTaskStatus === "SUCCESS") {
+      return "success";
+    }
+
+    if (
+      normalizedTaskStatus === "0" ||
+      normalizedTaskStatus === "1" ||
+      normalizedTaskStatus === "PENDING" ||
+      normalizedTaskStatus === "RUNNING" ||
+      normalizedTaskStatus === "PROCESSING" ||
+      normalizedTaskStatus === "IN_PROGRESS" ||
+      normalizedTaskStatus === "QUEUED"
+    ) {
+      return "processing";
+    }
+
+    if (
+      normalizedTaskStatus === "3" ||
+      normalizedTaskStatus === "FAILED" ||
+      normalizedTaskStatus === "ERROR" ||
+      normalizedTaskStatus === "CANCELLED" ||
+      normalizedTaskStatus === "TIMEOUT"
+    ) {
+      return "failed";
+    }
   }
 
-  const normalized = String(status ?? "")
+  const raw = record.status;
+
+  if (typeof raw === "number") {
+    if (raw === 1) {
+      return "success";
+    }
+    if (raw === 0) {
+      return hasErrorMessage(record) ? "failed" : "processing";
+    }
+    if (raw === 2) {
+      return "processing";
+    }
+    return hasErrorMessage(record) ? "failed" : "processing";
+  }
+
+  const normalized = String(raw ?? "")
     .trim()
     .toUpperCase();
 
@@ -392,20 +463,76 @@ function normalizeRecordStatus(status: unknown): number {
     normalized === "COMPLETED" ||
     normalized === "DONE"
   ) {
-    return 1;
+    return "success";
   }
 
-  return 0;
+  if (
+    normalized === "0" ||
+    normalized === "PENDING" ||
+    normalized === "PROCESSING" ||
+    normalized === "RUNNING" ||
+    normalized === "IN_PROGRESS" ||
+    normalized === "QUEUED" ||
+    normalized === "LOCKED"
+  ) {
+    return hasErrorMessage(record) ? "failed" : "processing";
+  }
+
+  if (
+    normalized === "FAILED" ||
+    normalized === "ERROR" ||
+    normalized === "DISABLED" ||
+    normalized === "CANCELLED" ||
+    normalized === "TIMEOUT"
+  ) {
+    return "failed";
+  }
+
+  return hasErrorMessage(record) ? "failed" : "processing";
 }
 
-function statusLabel(status: unknown): string {
-  return normalizeRecordStatus(status) === 1
-    ? t("records.statusOk")
-    : t("records.statusFailed");
+function stopRecordsPolling(): void {
+  if (!recordsPollTimer) {
+    return;
+  }
+  clearInterval(recordsPollTimer);
+  recordsPollTimer = null;
 }
 
-function statusColor(status: unknown): string {
-  return normalizeRecordStatus(status) === 1 ? "success" : "warning";
+function startRecordsPolling(): void {
+  if (recordsPollTimer) {
+    return;
+  }
+
+  recordsPollTimer = setInterval(() => {
+    if (!hasProcessingRecords.value || loading.value) {
+      return;
+    }
+
+    void loadRecords({ preserveScrollPosition: true });
+  }, RECORDS_POLL_INTERVAL_MS);
+}
+
+function statusLabel(record: YoloDetectionRecord): string {
+  const status = resolveRecordStatus(record);
+  if (status === "success") {
+    return t("records.statusOk");
+  }
+  if (status === "processing") {
+    return t("records.statusProcessing");
+  }
+  return t("records.statusFailed");
+}
+
+function statusColor(record: YoloDetectionRecord): string {
+  const status = resolveRecordStatus(record);
+  if (status === "success") {
+    return "success";
+  }
+  if (status === "processing") {
+    return "info";
+  }
+  return "warning";
 }
 
 function asText(value: unknown): string {
@@ -433,7 +560,7 @@ function detailRows(
     { label: t("records.table.id"), value: asText(record.id) },
     { label: t("records.table.node"), value: asText(record.nodeId) },
     { label: t("records.table.type"), value: typeLabel(record.taskType) },
-    { label: t("records.table.status"), value: statusLabel(record.status) },
+    { label: t("records.table.status"), value: statusLabel(record) },
     {
       label: t("records.table.filename"),
       value: asText(record.originalFilename),
@@ -522,6 +649,22 @@ watch(
   },
   { flush: "post" },
 );
+
+watch(
+  () => hasProcessingRecords.value,
+  (hasProcessing) => {
+    if (hasProcessing) {
+      startRecordsPolling();
+      return;
+    }
+    stopRecordsPolling();
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  stopRecordsPolling();
+});
 </script>
 
 <template>
@@ -595,6 +738,11 @@ watch(
           <v-chip color="success" variant="flat"
             >{{ t("records.statusOk") }} · {{ successCountInPage }}</v-chip
           >
+          <v-chip color="info" variant="flat"
+            >
+            {{ t("records.statusProcessing") }} ·
+            {{ processingCountInPage }}
+          </v-chip>
           <v-chip color="warning" variant="flat"
             >{{ t("records.statusFailed") }} · {{ failedCountInPage }}</v-chip
           >
@@ -627,11 +775,11 @@ watch(
 
           <template #item.status="{ item }">
             <v-chip
-              :color="statusColor(item.status)"
+              :color="statusColor(item)"
               size="small"
               variant="flat"
             >
-              {{ statusLabel(item.status) }}
+              {{ statusLabel(item) }}
             </v-chip>
           </template>
 
@@ -681,7 +829,7 @@ watch(
             v-model="current"
             :length="pageCount"
             :total-visible="7"
-            @update:model-value="loadRecords"
+            @update:model-value="() => loadRecords()"
           />
         </div>
       </v-card-text>

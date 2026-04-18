@@ -25,6 +25,7 @@ const inference = {
   detectionDetails: "Detection Details",
   detailItemsEmpty: "No detail items available",
   statusOk: "OK",
+  statusProcessing: "PROCESSING",
   statusFailed: "FAILED",
   typeImage: "IMAGE",
   typeVideo: "VIDEO",

@@ -477,7 +477,12 @@ watch(
 
     <v-main>
       <v-container class="page-container py-8">
-        <RouterView />
+        <RouterView v-slot="{ Component, route }">
+          <KeepAlive>
+            <component :is="Component" v-if="route.meta.keepAlive" />
+          </KeepAlive>
+          <component :is="Component" v-if="!route.meta.keepAlive" />
+        </RouterView>
       </v-container>
     </v-main>
 

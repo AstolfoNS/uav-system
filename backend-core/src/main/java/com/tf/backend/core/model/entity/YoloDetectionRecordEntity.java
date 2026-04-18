@@ -3,6 +3,7 @@ package com.tf.backend.core.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.tf.backend.core.common.enumeration.TaskStatus;
 import com.tf.backend.core.common.enumeration.TaskType;
 import com.tf.backend.core.model.entity.base.BaseEntity;
 import lombok.*;
@@ -40,6 +41,12 @@ public class YoloDetectionRecordEntity extends BaseEntity {
      */
     @Schema(description = "任务类型(1=图像检测,2=视频检测)")
     private TaskType taskType;
+
+    /**
+     * 任务执行状态：0=待处理,1=处理中,2=成功,3=失败
+     */
+    @Schema(description = "任务执行状态(0=待处理,1=处理中,2=成功,3=失败)")
+    private TaskStatus taskStatus;
 
     /**
      * 上传的原始文件名

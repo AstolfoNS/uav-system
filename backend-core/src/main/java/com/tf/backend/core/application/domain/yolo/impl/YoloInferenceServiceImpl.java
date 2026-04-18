@@ -2,6 +2,7 @@ package com.tf.backend.core.application.domain.yolo.impl;
 
 import com.tf.backend.core.application.strategy.InferenceResultParserStrategy;
 import com.tf.backend.core.common.enumeration.Status;
+import com.tf.backend.core.common.enumeration.TaskStatus;
 import com.tf.backend.core.common.enumeration.TaskType;
 import com.tf.backend.core.common.exception.BizException;
 import com.tf.backend.core.common.util.IdUtils;
@@ -74,12 +75,17 @@ public class YoloInferenceServiceImpl implements YoloInferenceService {
                 .nodeId(nodeId)
                 .code(code)
                 .taskType(taskType) // 假设 TaskType 枚举有 getValue() 返回 Integer
+            .taskStatus(TaskStatus.PENDING)
                 .originalFilename(file.getOriginalFilename())
                 .status(Status.DISABLED)
                 .detectCount(0)
                 .build();
 
         yoloDetectionRecordService.save(record);
+
+        // 进入执行阶段后更新为处理中，便于前端中间态感知。
+        record.setTaskStatus(TaskStatus.RUNNING);
+        yoloDetectionRecordService.updateById(record);
 
         long startTime = System.currentTimeMillis();
         try {
@@ -123,11 +129,13 @@ public class YoloInferenceServiceImpl implements YoloInferenceService {
                     }
                 }
 
+                record.setTaskStatus(TaskStatus.SUCCESS);
                 record.setStatus(Status.ENABLED);
             }
         } catch (Exception e) {
             log.error("Inference task [{}] failed. Node: {}", code, baseUrl, e);
 
+            record.setTaskStatus(TaskStatus.FAILED);
             record.setStatus(Status.DISABLED);
             record.setErrorMessage(e.getMessage());
         } finally {

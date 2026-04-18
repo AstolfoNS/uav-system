@@ -293,12 +293,70 @@ function typeLabel(taskType: unknown): string {
     : t("inference.typeImage");
 }
 
-function normalizeRecordStatus(status: unknown): number {
-  if (typeof status === "number") {
-    return status === 1 ? 1 : 0;
+type InferenceUiStatus = "success" | "processing" | "failed";
+
+function hasErrorMessage(record: YoloDetectionRecord): boolean {
+  const normalized = String(record.errorMessage ?? "").trim().toLowerCase();
+  return Boolean(
+    normalized && normalized !== "null" && normalized !== "undefined",
+  );
+}
+
+function resolveInferenceStatus(
+  record: YoloDetectionRecord,
+  loading = false,
+): InferenceUiStatus {
+  if (loading) {
+    return "processing";
   }
 
-  const normalized = String(status ?? "")
+  const taskStatusRaw = record.taskStatus;
+
+  if (taskStatusRaw !== null && taskStatusRaw !== undefined && taskStatusRaw !== "") {
+    const normalizedTaskStatus = String(taskStatusRaw).trim().toUpperCase();
+
+    if (normalizedTaskStatus === "2" || normalizedTaskStatus === "SUCCESS") {
+      return "success";
+    }
+
+    if (
+      normalizedTaskStatus === "0" ||
+      normalizedTaskStatus === "1" ||
+      normalizedTaskStatus === "PENDING" ||
+      normalizedTaskStatus === "RUNNING" ||
+      normalizedTaskStatus === "PROCESSING" ||
+      normalizedTaskStatus === "IN_PROGRESS" ||
+      normalizedTaskStatus === "QUEUED"
+    ) {
+      return "processing";
+    }
+
+    if (
+      normalizedTaskStatus === "3" ||
+      normalizedTaskStatus === "FAILED" ||
+      normalizedTaskStatus === "ERROR" ||
+      normalizedTaskStatus === "CANCELLED" ||
+      normalizedTaskStatus === "TIMEOUT"
+    ) {
+      return "failed";
+    }
+  }
+
+  const raw = record.status;
+  if (typeof raw === "number") {
+    if (raw === 1) {
+      return "success";
+    }
+    if (raw === 0) {
+      return hasErrorMessage(record) ? "failed" : "processing";
+    }
+    if (raw === 2) {
+      return "processing";
+    }
+    return hasErrorMessage(record) ? "failed" : "processing";
+  }
+
+  const normalized = String(raw ?? "")
     .trim()
     .toUpperCase();
 
@@ -310,20 +368,54 @@ function normalizeRecordStatus(status: unknown): number {
     normalized === "COMPLETED" ||
     normalized === "DONE"
   ) {
-    return 1;
+    return "success";
   }
 
-  return 0;
+  if (
+    normalized === "0" ||
+    normalized === "PENDING" ||
+    normalized === "PROCESSING" ||
+    normalized === "RUNNING" ||
+    normalized === "IN_PROGRESS" ||
+    normalized === "QUEUED" ||
+    normalized === "LOCKED"
+  ) {
+    return hasErrorMessage(record) ? "failed" : "processing";
+  }
+
+  if (
+    normalized === "FAILED" ||
+    normalized === "ERROR" ||
+    normalized === "DISABLED" ||
+    normalized === "CANCELLED" ||
+    normalized === "TIMEOUT"
+  ) {
+    return "failed";
+  }
+
+  return hasErrorMessage(record) ? "failed" : "processing";
 }
 
-function statusLabel(status: unknown): string {
-  return normalizeRecordStatus(status) === 1
-    ? t("inference.statusOk")
-    : t("inference.statusFailed");
+function statusLabel(record: YoloDetectionRecord, loading = false): string {
+  const status = resolveInferenceStatus(record, loading);
+  if (status === "success") {
+    return t("inference.statusOk");
+  }
+  if (status === "processing") {
+    return t("inference.statusProcessing");
+  }
+  return t("inference.statusFailed");
 }
 
-function statusColor(status: unknown): string {
-  return normalizeRecordStatus(status) === 1 ? "success" : "warning";
+function statusColor(record: YoloDetectionRecord, loading = false): string {
+  const status = resolveInferenceStatus(record, loading);
+  if (status === "success") {
+    return "success";
+  }
+  if (status === "processing") {
+    return "info";
+  }
+  return "warning";
 }
 
 function resultRows(
@@ -338,7 +430,7 @@ function resultRows(
     },
     {
       label: t("inference.fieldStatus"),
-      value: statusLabel(record.status),
+      value: statusLabel(record),
     },
     {
       label: t("inference.fieldFilename"),
@@ -686,11 +778,11 @@ onBeforeUnmount(() => {
                     <div v-if="imageResult" class="mt-3 result-zone">
                       <div class="result-status mt-1">
                         <v-chip
-                          :color="statusColor(imageResult.status)"
+                          :color="statusColor(imageResult, imageLoading)"
                           size="small"
                           variant="flat"
                         >
-                          {{ statusLabel(imageResult.status) }}
+                          {{ statusLabel(imageResult, imageLoading) }}
                         </v-chip>
                       </div>
                       <v-row class="mt-3 info-grid">
@@ -1006,11 +1098,11 @@ onBeforeUnmount(() => {
                     <div v-if="videoResult" class="mt-3 result-zone">
                       <div class="result-status mt-1">
                         <v-chip
-                          :color="statusColor(videoResult.status)"
+                          :color="statusColor(videoResult, videoLoading)"
                           size="small"
                           variant="flat"
                         >
-                          {{ statusLabel(videoResult.status) }}
+                          {{ statusLabel(videoResult, videoLoading) }}
                         </v-chip>
                       </div>
                       <v-row class="mt-3 info-grid">

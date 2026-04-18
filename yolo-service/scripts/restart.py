@@ -3,8 +3,21 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
+import os
 
 from yoloservice.config.settings import settings
+
+
+def _resolve_python_executable() -> str:
+    """优先使用项目内虚拟环境解释器，避免外部环境污染。"""
+    if os.name == "nt":
+        venv_python = settings.BASE_DIR / ".venv" / "Scripts" / "python.exe"
+    else:
+        venv_python = settings.BASE_DIR / ".venv" / "bin" / "python"
+
+    if venv_python.exists():
+        return str(venv_python)
+    return sys.executable
 
 
 def _run_script(script_name: str) -> int:
@@ -13,8 +26,10 @@ def _run_script(script_name: str) -> int:
         print(f"[FAIL] Script not found: {script_path}")
         return 2
 
+    python_exec = _resolve_python_executable()
+
     return subprocess.run(
-        [sys.executable, str(script_path)],
+        [python_exec, str(script_path)],
         cwd=str(settings.BASE_DIR),
     ).returncode
 
