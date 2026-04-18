@@ -19,3 +19,6 @@ yolo-service/logs/**/*.log.*
 
 # YOLO weights
 yolo-service/weights/**/*.pt
+
+# Ignore backup archive directory
+/backup/
