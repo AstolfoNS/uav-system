@@ -1,0 +1,87 @@
+2026-04-15 08:43:53.682  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-04-15 08:43:53.683  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-04-15 08:43:53.684  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-04-15 08:43:53.729  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-04-15 08:43:53.729  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-04-15 08:43:53.730  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [14280]
+2026-04-15 08:43:53.730  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-04-15 08:43:53.876  INFO --- [     MainThread] yolo-service              [         detector.py:22  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-15 08:43:53.876  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-04-15 08:44:00.272  INFO --- [     MainThread] uvicorn.error             [           server.py:272 ] : Shutting down
+2026-04-15 08:44:00.381  INFO --- [     MainThread] uvicorn.error             [               on.py:67  ] : Waiting for application shutdown.
+2026-04-15 08:44:00.382  INFO --- [     MainThread] yolo-service              [         lifespan.py:19  ] : Service is closing...
+2026-04-15 08:44:00.382  INFO --- [     MainThread] uvicorn.error             [               on.py:76  ] : Application shutdown complete.
+2026-04-15 08:44:00.383  INFO --- [     MainThread] uvicorn.error             [           server.py:102 ] : Finished server process [14280]
+2026-04-15 08:44:23.085  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-04-15 08:44:23.085  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-04-15 08:44:23.086  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-04-15 08:44:23.116  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-04-15 08:44:23.116  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-04-15 08:44:23.116  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [29344]
+2026-04-15 08:44:23.117  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-04-15 08:44:23.160  INFO --- [     MainThread] yolo-service              [         detector.py:22  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-15 08:44:23.161  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-04-15 22:53:38.345  INFO --- [     MainThread] yolo-service              [       create_app.py:34  ] : Logging system initialized
+2026-04-15 22:53:38.347  INFO --- [     MainThread] yolo-service              [       create_app.py:37  ] : Creating FastAPI application (env=DEBUG)
+2026-04-15 22:53:38.348  INFO --- [     MainThread] yolo-service              [       create_app.py:50  ] : Middlewares registered
+2026-04-15 22:53:38.461  INFO --- [     MainThread] yolo-service              [       create_app.py:54  ] : Routes registered
+2026-04-15 22:53:38.461  INFO --- [     MainThread] yolo-service              [       create_app.py:57  ] : Application created successfully (name=UAV Detection Service [DEV], version=1.0.0)
+2026-04-15 22:53:38.462  INFO --- [     MainThread] uvicorn.error             [           server.py:92  ] : Started server process [33044]
+2026-04-15 22:53:38.462  INFO --- [     MainThread] uvicorn.error             [               on.py:48  ] : Waiting for application startup.
+2026-04-15 22:53:38.656  INFO --- [     MainThread] yolo-service              [         detector.py:22  ] : YOLO 模型已成功加载: C:\Project\uav-system\yolo-service\weights\yolo26n.pt
+2026-04-15 22:53:38.657  INFO --- [     MainThread] uvicorn.error             [               on.py:62  ] : Application startup complete.
+2026-04-15 22:57:30.137  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49194 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 22:57:30.150  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49194 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 22:58:00.009  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49260 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 22:58:00.011  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49260 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 22:58:30.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49365 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 22:58:30.010  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49365 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 22:59:00.007  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49714 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 22:59:00.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49714 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 22:59:30.006  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49767 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 22:59:30.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49767 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:00:00.053  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49854 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 23:00:00.055  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49854 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:00:30.013  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49910 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 23:00:30.015  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49910 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:01:00.019  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49952 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 23:01:00.020  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:49952 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:01:30.022  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50095 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 23:01:30.024  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50095 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:02:00.011  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50167 - "GET /api/v1/health HTTP/1.1" 307
+2026-04-15 23:02:00.012  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:50167 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:35:00.142  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60730 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:35:30.014  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:64591 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:36:00.012  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:64880 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:36:30.009  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:65132 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:37:00.010  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60238 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:37:30.010  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:55253 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:38:00.009  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:55477 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:38:30.012  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:55698 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:39:00.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:55894 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:39:30.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:56071 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:40:00.011  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:56332 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:40:30.008  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59533 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:41:00.024  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59803 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:41:30.018  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:59991 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:42:00.028  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60134 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:42:30.014  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60181 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:43:57.913  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60319 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:43:57.986  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60319 - "GET /api/v1/weights/ HTTP/1.1" 200
+2026-04-15 23:43:57.994  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60319 - "GET /api/v1/params/ HTTP/1.1" 200
+2026-04-15 23:44:00.012  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60319 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:44:30.016  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60426 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:45:00.015  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60457 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:45:30.018  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:60615 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:46:26.088  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61817 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:46:26.134  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61817 - "GET /api/v1/weights/ HTTP/1.1" 200
+2026-04-15 23:46:26.139  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61817 - "GET /api/v1/params/ HTTP/1.1" 200
+2026-04-15 23:46:30.011  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61817 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:47:00.011  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:61959 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:47:30.025  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62075 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:48:00.022  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62131 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:48:49.034  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62253 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:48:49.080  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62253 - "GET /api/v1/weights/ HTTP/1.1" 200
+2026-04-15 23:48:49.085  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62253 - "GET /api/v1/params/ HTTP/1.1" 200
+2026-04-15 23:49:00.013  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62279 - "GET /api/v1/health/ HTTP/1.1" 200
+2026-04-15 23:49:30.015  INFO --- [     MainThread] uvicorn.access            [         h11_impl.py:480 ] : 127.0.0.1:62311 - "GET /api/v1/health/ HTTP/1.1" 200
